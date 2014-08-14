@@ -45,12 +45,11 @@ To install:
 from ceilometer import publisher
 
 from marquise import Marquise
-import datetime
 
 from pprint import pprint
 from pprint import pformat
-from dateutil.parser import *
-from dateutil.tz import *
+from dateutil.parser import parse
+from dateutil.tz import tzutc
 
 from ceilometer.openstack.common.gettextutils import _
 from ceilometer.openstack.common import log
@@ -58,42 +57,51 @@ from ceilometer.openstack.common import log
 LOG = log.getLogger(__name__)
 
 
-# Sanitize a value into something that Marquise can use
 def sanitize(v):
+    """Sanitize a value into something that Marquise can use. This weeds
+    out None keys/values, and ensures that timestamps are consistently
+    formatted.
+    """
+    if v is None:
+        return ""
+    if v in (True,False):
+        return 1 if v is True else 0
     try:
         # Try and take a value and use dateutil to parse it
         timestamp = parse(v)
         if timestamp.tzinfo is None:
-                timestamp = timestamp.replace(tzinfo=tzutc())
-        return int(timestamp.strftime("%s") +"000000000")
-    except:
-        # Should dateutil parsing fail, attempt sanitation if it's a primative type
-        if type(v) is str:
+            timestamp = timestamp.replace(tzinfo=tzutc())
+        NANOSECONDS_PER_SECOND = 10**9
+        return int(timestamp.strftime("%s")) * NANOSECONDS_PER_SECOND
+    except (ValueError,AttributeError): # ValueError for bad strings, AttributeError for bad input type.
+        # If parsing fails then assume it's not a valid datestamp/timestamp.
+        # Instead, treat it as a primitive type and stringify it accordingly.
+        if type(v) is str: # XXX: will be incorrect/ambiguous in Python 3.
             v = v.replace(":","-")
             v = v.replace(",","-")
-        elif type(v) is bool:
-            v = 1 if v == True else 0
         return v
 
-# Take a nested dictionary, and flatten it into a one-level dictionary
-# Also removes any keyvalues that Marquise/Vaultaire can't handle.
 def flatten(n, prefix=""):
+    """Take a (potentially) nested dictionary and flatten it into a single
+    level. Also remove any keys/values that Marquise/Vaultaire can't handle.
+    """
     flattened_dict = {}
     for k,v in n.items():
         k = sanitize(k)
 
-        # Vaultaire doesn't care about generated URLs for ceilometer API references.
-        if k == "links":
+        # Vaultaire doesn't care about generated URLs for Ceilometer
+        # API references.
+        if str(k) == "links":
             continue
-        if k.endswith('_url'):
+        if str(k).endswith('_url'):
             continue
 
-        # Vaultaire doesn't want values if they have no contents
+        # Vaultaire doesn't want values if they have no contents.
         if v is None:
             continue
 
-        # If key has a parent, concatenate it into the new keyname
-        if prefix != "":
+        # If key has a parent, concatenate it into the new keyname.
+        if prefix:
             k = "{}~{}".format(prefix,k)
 
         # This was previously a check for __iter__, but strings have those now,
@@ -107,6 +115,7 @@ def flatten(n, prefix=""):
 
 
 class VaultairePublisher(publisher.PublisherBase):
+    """Implements the Publisher interface for Ceilometer."""
     def __init__(self, parsed_url):
         super(VaultairePublisher, self).__init__(parsed_url)
 
@@ -142,7 +151,7 @@ class VaultairePublisher(publisher.PublisherBase):
                 # Our payload is the volume (later parsed to "counter_volume" in ceilometer)
                 payload = sanitize(sample["volume"])
 
-                # Rebuild the sample as a source dict 
+                # Rebuild the sample as a source dict
                 sourcedict = dict(sample)
 
                 # Vaultaire cares about the datatype of the payload
@@ -167,4 +176,3 @@ class VaultairePublisher(publisher.PublisherBase):
 
                 LOG.debug(_("Marquise Update Source Dict for %s - %s") % (address, pformat(sourcedict)))
                 marq.update_source(address, sourcedict)
-
