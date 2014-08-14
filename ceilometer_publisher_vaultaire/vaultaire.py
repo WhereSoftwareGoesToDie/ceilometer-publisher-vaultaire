@@ -119,17 +119,17 @@ class VaultairePublisher(publisher.PublisherBase):
         LOG.info(_("Marquise loaded with namespace %s" % namespace))
         self.marquise = Marquise(namespace)
 
-    def publish_samples(self, context, samples):
+    def publish_samples(self, dummy_context, samples):
         """Reconstruct a metering message for publishing to Vaultaire via Marquise
 
-        :param context: Execution context from the service or RPC call
+        :param dummy_context: Execution context from the service or RPC call. (Unused)
         :param samples: Samples from pipeline after transformation
         """
         if self.marquise:
             marq = self.marquise
             for sample in samples:
                 sample = sample.as_dict()
-                LOG.info(_("Vaultaire Publisher got sample:\n%s") % pformat(sample))
+                LOG.debug(_("Vaultaire Publisher got sample:\n%s") % pformat(sample))
 
                 # Generate the unique identifer for the sample
                 identifier = sample["resource_id"] + sample["project_id"] + \
@@ -162,7 +162,7 @@ class VaultairePublisher(publisher.PublisherBase):
                 sourcedict.update(flatten(sourcedict.pop("resource_metadata")))
 
                 # Finally, send it all off to marquise
-                LOG.debug(_("Marquise Send Simple: %s %s %s") % (address, timestamp, payload))
+                LOG.info(_("Marquise Send Simple: %s %s %s") % (address, timestamp, payload))
                 marq.send_simple(address=address, timestamp=timestamp, value=payload)
 
                 LOG.debug(_("Marquise Update Source Dict for %s - %s") % (address, pformat(sourcedict)))
