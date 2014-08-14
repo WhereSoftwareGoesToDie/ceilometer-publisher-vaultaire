@@ -13,7 +13,7 @@ def read(fname):
 
 
 setup(
-    name="ceilometer.publisher.vaultaire",
+    name="ceilometer-publisher-vaultaire",
     version=VERSION,
     description="A publisher plugin for Ceilometer that outputs to Vaultaire",
     author="Barney Desmond",
@@ -21,7 +21,7 @@ setup(
     url="https://github.com/anchor/FIXME",
     zip_safe=False,
     packages=[
-        "ceilometer", # Does anyone know what this means?
+        "ceilometer_publisher_vaultaire", # Does anyone know what this means?
     ],
     long_description=read("README"),
     classifiers=[
@@ -31,7 +31,7 @@ setup(
     ],
     entry_points = {
         "ceilometer.publisher": [
-            "vaultaire = ceilometer.publisher.vaultaire:VaultairePublisher",
+            "vaultaire = ceilometer_publisher_vaultaire:VaultairePublisher",
         ],
     },
 )
