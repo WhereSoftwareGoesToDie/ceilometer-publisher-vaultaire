@@ -1,0 +1,2 @@
+ceilometer-publisher-vaultaire
+==============================
