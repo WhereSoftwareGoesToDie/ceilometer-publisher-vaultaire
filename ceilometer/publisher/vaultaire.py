@@ -55,41 +55,48 @@ from ceilometer.openstack.common import log
 LOG = log.getLogger(__name__)
 
 
-# Parse a textual timestamp into a timezone-aware timestamp.
-def parse_date_string(date_string):
-    timestamp = parse(date_string)
-    if timestamp.tzinfo is None:
-        timestamp = timestamp.replace(tzinfo=tzutc())
-    return timestamp
+# Sanitize a value into something that Marquise can use
+def sanitize(v):
+    try:
+        # Try and take a value and use dateutil to parse it
+        timestamp = parse(v)
+        if timestamp.tzinfo is None:
+                timestamp = timestamp.replace(tzinfo=tzutc())
+        return int(timestamp.strftime("%s") +"000000000")
+    except:
+        # Should dateutil parsing fail, attempt sanitation if it's a primative type
+        if type(v) is str:
+            v = v.replace(":","-")
+            v = v.replace(",","-")
+        elif type(v) is bool:
+            v = 1 if v == True else 0
+        return v
 
 # Take a nested dictionary, and flatten it into a one-level dictionary
-# Also parses and removes any keyvalues that Marquise/Vaultaire can't handle.
+# Also removes any keyvalues that Marquise/Vaultaire can't handle.
 def flatten(n, prefix=""):
     flattened_dict = {}
     for k,v in n.items():
-        # Remove Colons from Keys
-        k = k.replace(':', '~')
-        
-	# Vaultaire doesn't care about generated URLs for ceilometer API references. 
-	if k == "links":
+        k = sanitize(k)
+
+        # Vaultaire doesn't care about generated URLs for ceilometer API references.
+        if k == "links":
             continue
         if k.endswith('_url'):
             continue
 
-	# Vaultaire doesn't want values if they have no contents
+        # Vaultaire doesn't want values if they have no contents
         if v is None:
             continue
 
-	# If key has a parent, concatenate it into the new keyname 
+        # If key has a parent, concatenate it into the new keyname
         if prefix != "":
             k = "{}~{}".format(prefix,k)
 
         # This was previously a check for __iter__, but strings have those now,
         # so let's just check for dict-ness instead. No good on lists anyway.
         if type(v) is not dict:
-            if type(v) is str:
-                    # Remove colons from Values
-		    v = v.replace(":","-")
+            v = sanitize(v)
             flattened_dict[k] = v
         else:
             flattened_dict.update(flatten(v, k))
@@ -118,55 +125,43 @@ class VaultairePublisher(publisher.PublisherBase):
         if self.marquise:
             marq = self.marquise
             for sample in samples:
-
-		sample = sample.as_dict()
+                sample = sample.as_dict()
                 LOG.info(_("Vaultaire Publisher got sample:\n%s") % pformat(sample))
-		if "audit_period_beginning" in sample:
-			print sample["resource_metadata"]["audit_period_beginning"]	
-	
-		if "launched_at" in sample:
-			print sample["resource_metadata"]["launched_at"]
 
-
-		# Generate the unique identifer for the sample	
-                identifier = (sample["resource_id"] + sample["project_id"] + sample["name"] + sample["type"] + sample["unit"])
+                # Generate the unique identifer for the sample
+                identifier = sample["resource_id"] + sample["project_id"] + \
+                             sample["name"] + sample["type"] + sample["unit"]
                 address = Marquise.hash_identifier(identifier)
 
-		# Parse timestamp to nanoseconds since epoch
-                timestamp = int(parse_date_string(sample["timestamp"]).strftime("%s") +"000000000")
+                # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
+                timestamp = sanitize(sample["timestamp"])
 
-		# Vaultaire cares about the datatype of the payload
-                payload = sample["volume"]
-		ptype = type(payload)
-                
-		_float = None
-                _extended = None
+                # Our payload is the volume (later parsed to "counter_volume" in ceilometer)
+                payload = sanitize(sample["volume"])
 
-                if ptype == float:
-                    _float = 1
-                elif ptype == str:
-                    _extended = 1
-                elif ptype == bool:
-                    payload = 1 if sample["volume"] == True else 0
-               
-		# Rebuild the sample as a source dict 
-		sourcedict = dict(sample)
+                # Rebuild the sample as a source dict 
+                sourcedict = dict(sample)
 
-		# Cast unit as a special metadata type
+                # Vaultaire cares about the datatype of the payload
+                if type(payload) == float:
+                    sourcedict["_float"] = 1
+                elif type(payload) == str:
+                    sourcedict["_extended"] = 1
+
+                # Cast unit as a special metadata type
                 sourcedict["_unit"] = sample.pop("unit")
-                
+
                 # Remove elements that we know to always change (not very useful for a source dictionary)
                 del sourcedict["timestamp"]
                 del sourcedict["volume"]
 
-		# Remove the original resource_metadata and substitute our own flattened version
-                del sourcedict["resource_metadata"]
-                sourcedict.update(flatten(sample["resource_metadata"]))
+                # Remove the original resource_metadata and substitute our own flattened version
+                sourcedict.update(flatten(sample.pop("resource_metadata")))
 
-		# Finally, send it all off to marquise
-		LOG.debug(_("Marquise Send Simple: %s %s %s") % (address, timestamp, payload))
+                # Finally, send it all off to marquise
+                LOG.debug(_("Marquise Send Simple: %s %s %s") % (address, timestamp, payload))
                 marq.send_simple(address=address, timestamp=timestamp, value=payload)
-	
-		LOG.debug(_("Marquise Update Source Dict for %s - %s") % (address, pformat(sourcedict)))
+
+                LOG.debug(_("Marquise Update Source Dict for %s - %s") % (address, pformat(sourcedict)))
                 marq.update_source(address, sourcedict)
 
