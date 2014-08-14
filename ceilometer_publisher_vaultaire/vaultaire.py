@@ -102,7 +102,7 @@ def flatten(n, prefix=""):
 
         # If key has a parent, concatenate it into the new keyname.
         if prefix:
-            k = "{}~{}".format(prefix,k)
+            k = "{}-{}".format(prefix,k)
 
         # This was previously a check for __iter__, but strings have those now,
         # so let's just check for dict-ness instead. No good on lists anyway.
