@@ -156,7 +156,7 @@ class VaultairePublisher(publisher.PublisherBase):
                 del sourcedict["volume"]
 
                 # Remove the original resource_metadata and substitute our own flattened version
-                sourcedict.update(flatten(sample.pop("resource_metadata")))
+                sourcedict.update(flatten(sourcedict.pop("resource_metadata")))
 
                 # Finally, send it all off to marquise
                 LOG.debug(_("Marquise Send Simple: %s %s %s") % (address, timestamp, payload))
