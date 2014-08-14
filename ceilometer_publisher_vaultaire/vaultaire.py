@@ -161,7 +161,11 @@ class VaultairePublisher(publisher.PublisherBase):
                     sourcedict["_extended"] = 1
 
                 # Cast unit as a special metadata type
-                sourcedict["_unit"] = sample.pop("unit")
+                sourcedict["_unit"] = sourcedict.pop("unit")
+
+                # Cast Identifier sections with unique names, in case of metadata overlap
+                sourcedict["counter_name"] = sourcedict.pop("name")
+                sourcedict["counter_type"] = sourcedict.pop("type")
 
                 # Remove elements that we know to always change (not very useful for a source dictionary)
                 del sourcedict["timestamp"]
