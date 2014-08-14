@@ -16,23 +16,26 @@
 """Publish a sample (metric data point) to Vaultaire
 
 To install:
-    ceilometer.egg-info/entry_points.txt
-    > [ceilometer.publishers]
-    > vaultaire = ceilometer.publisher.vaultaire:VaultairePublisher
-
     git clone https://github.com/anchor/libmarquise.git
     git clone https://github.com/anchor/pymarquise.git
 
-    cd libmarquise; and follow README install docs
-    cd pymarquise; and `python setup.py install`
+    cd libmarquise
+    > follow README install docs
 
-    if ceilometer user can't access /var/spool:
-      mkdir /var/spool/marquise,
-      chown user:user /var/spool/marquise
+    cd pymarquise
+    (sudo) python setup.py install
 
-    THEN
+    > if ceilometer user can't access /var/spool:
+    >   mkdir /var/spool/marquise,
+    >   chown user:user /var/spool/marquise
 
-    Add vaultaire to part of your pipeline.yaml sink, like:
+    git clone https://github.com/anchor/ceilometer-publisher-vaultaire.git
+    (sudo) python setup.py install
+
+    > THEN
+
+    > Add vaultaire to part of your pipeline.yaml sink, like:
+
        publishers:
            - vaultaire://namespace
 
