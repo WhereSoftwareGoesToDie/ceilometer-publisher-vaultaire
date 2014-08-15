@@ -48,6 +48,7 @@ from marquise import Marquise
 
 from pprint import pprint
 from pprint import pformat
+import datetime
 from dateutil.parser import parse
 from dateutil.tz import tzutc
 
@@ -72,7 +73,9 @@ def sanitize(v):
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=tzutc())
         NANOSECONDS_PER_SECOND = 10**9
-        return int(timestamp.strftime("%s")) * NANOSECONDS_PER_SECOND
+        epoch = datetime.datetime(1970,1,1,tzinfo=tzutc())
+        time = (timestamp - epoch).total_seconds()
+        return int(time * NANOSECONDS_PER_SECOND)
     except (ValueError,AttributeError): # ValueError for bad strings, AttributeError for bad input type.
         # If parsing fails then assume it's not a valid datestamp/timestamp.
         # Instead, treat it as a primitive type and stringify it accordingly.
