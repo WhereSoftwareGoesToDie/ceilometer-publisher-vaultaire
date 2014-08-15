@@ -20,26 +20,30 @@ You will need [Pymarquise] and [libmarquise] installed as dependencies.
 Installation
 ---
 
-`git clone https://github.com/anchor/libmarquise.git`
-cd libmarquise
-> follow README install docs
 
-`git clone https://github.com/anchor/pymarquise.git`
+Clone all the libraries into a location on the server
+
+Install marquise, and libmarquise as per their installation instructions
+
+run `(sudo) python setup.py install` for both pymarquise and ceilometer-publisher-vaultaire
+
+Confirm that the user running ceilometer can write to `/var/spool`. If not:  
+
+```
+mkdir /var/spool/marquise
+chown user:user /var/spool/marquise
+```
 
 
-cd pymarquise
-(sudo) python setup.py install
+Once this is all setup, add the following to the sinks of choice into your `/etc/ceilometer/pipeline.yaml`
 
-> if ceilometer user can't access /var/spool:
->   mkdir /var/spool/marquise,
->   chown user:user /var/spool/marquise
+```
+    publishers:
+        - vaultaire://namespace
+```
 
-git clone https://github.com/anchor/ceilometer-publisher-vaultaire.git
-(sudo) python setup.py install
+Depending on your setup, you will need to restart: 
 
-> THEN
-
-> Add vaultaire to part of your pipeline.yaml sink, like:
-
-publishers:
-   - vaultaire://namespace
+`ceilometer-anotification`
+`ceilometer-collector`
+`ceilometer-acompute`
