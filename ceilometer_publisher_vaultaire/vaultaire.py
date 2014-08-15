@@ -43,14 +43,23 @@ def sanitize(v):
     if v in (True,False):
         return 1 if v is True else 0
     try:
-        # Try and take a value and use dateutil to parse it
-        timestamp = parse(v)
-        if timestamp.tzinfo is None:
-            timestamp = timestamp.replace(tzinfo=tzutc())
+        # Try and take a value and use dateutil to parse it.  If there's no TZ
+        # spec in the string, assume it's UTC because that's what Ceilometer
+        # uses.
+        # Eg. 2014-08-10T12:14:13Z      # timezone-aware
+        # Eg. 2014-08-10 12:14:13       # timezone-naive
+        # Eg. 2014-08-10 12:14:13+1000  # timezone-aware
         NANOSECONDS_PER_SECOND = 10**9
-        epoch = datetime.datetime(1970,1,1,tzinfo=tzutc())
-        time = (timestamp - epoch).total_seconds()
-        return int(time * NANOSECONDS_PER_SECOND)
+        if type(v) is datetime.datetime:
+            timestamp = v
+        else: # We have a string.
+            timestamp = parse(v)
+            if timestamp.tzinfo is None:
+                timestamp = timestamp.replace(tzinfo=tzutc())
+        # If we get here, we've successfully grabbed a datetime.
+        epoch = datetime.datetime(1970, 1, 1, tzinfo=tzutc())
+        time_since_epoch = (timestamp - epoch).total_seconds() # total_seconds() is in Py2.7 and later.
+        return int(time_since_epoch * NANOSECONDS_PER_SECOND)
     except (ValueError,AttributeError): # ValueError for bad strings, AttributeError for bad input type.
         # If parsing fails then assume it's not a valid datestamp/timestamp.
         # Instead, treat it as a primitive type and stringify it accordingly.
