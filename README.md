@@ -26,21 +26,20 @@ cd libmarquise
 
 `git clone https://github.com/anchor/pymarquise.git`
 
-													       
-cd pymarquise                                                                                                      
-(sudo) python setup.py install                                                                                     
-													       
-> if ceilometer user can't access /var/spool:                                                                      
->   mkdir /var/spool/marquise,                                                                                     
->   chown user:user /var/spool/marquise                                                                            
-													       
-git clone https://github.com/anchor/ceilometer-publisher-vaultaire.git                                             
-(sudo) python setup.py install                                                                                     
-													       
-> THEN                                                                                                             
-													       
-> Add vaultaire to part of your pipeline.yaml sink, like:                                                          
-													       
-publishers:                                                                                                     
-   - vaultaire://namespace                                                                                     
-				
+
+cd pymarquise
+(sudo) python setup.py install
+
+> if ceilometer user can't access /var/spool:
+>   mkdir /var/spool/marquise,
+>   chown user:user /var/spool/marquise
+
+git clone https://github.com/anchor/ceilometer-publisher-vaultaire.git
+(sudo) python setup.py install
+
+> THEN
+
+> Add vaultaire to part of your pipeline.yaml sink, like:
+
+publishers:
+   - vaultaire://namespace
