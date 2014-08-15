@@ -27,7 +27,7 @@ Install marquise, and libmarquise as per their installation instructions
 
 run `(sudo) python setup.py install` for both pymarquise and ceilometer-publisher-vaultaire
 
-Confirm that the user running ceilometer can write to `/var/spool`. If not:  
+Confirm that the user running ceilometer can write to `/var/spool`. If not:
 
 ```
 mkdir /var/spool/marquise
@@ -42,7 +42,7 @@ Once this is all setup, add the following to the sinks of choice into your `/etc
         - vaultaire://namespace
 ```
 
-Depending on your setup, you will need to restart: 
+Depending on your setup, you will need to restart:
 
 `ceilometer-anotification`
 `ceilometer-collector`
