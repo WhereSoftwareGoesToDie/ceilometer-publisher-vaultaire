@@ -1,5 +1,6 @@
 import os
 from setuptools import setup
+from pip.req import parse_requirements
 
 with open('VERSION', 'r') as f:
     VERSION = f.readline().strip()
@@ -34,4 +35,5 @@ setup(
             "vaultaire = ceilometer_publisher_vaultaire:VaultairePublisher",
         ],
     },
+    install_requires=[str(req.req) for req in parse_requirements("requirements.txt")],
 )
