@@ -13,9 +13,13 @@ install:
   - sudo su -c "echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf"
   - sudo ldconfig
   - cd -
+  - git clone https://github.com/openstack/ceilometer ../ceilometer
+  - cd ../ceilometer
+  - sudo python setup.py install
+  - cd -
   - sudo pip install cffi
   - sudo pip install six
-  - sudo pip install --allow-external ceilometer
+
 
 script:
   - sudo python setup.py install
