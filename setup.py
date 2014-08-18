@@ -24,6 +24,9 @@ setup(
     packages=[
         "ceilometer_publisher_vaultaire", # Does anyone know what this means?
     ],
+    package_data={
+        "ceilometer_publisher_vaultaire" : ["VERSION"],
+    },
     long_description=read("README"),
     classifiers=[
         "Development Status :: 3 - Alpha",
