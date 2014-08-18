@@ -17,6 +17,7 @@ install:
   - sudo ldconfig
   - cd -
   - sudo pip install cffi
+  - sudo pip install six
   - sudo pip install --allow-external ceilometer
 
 script:
