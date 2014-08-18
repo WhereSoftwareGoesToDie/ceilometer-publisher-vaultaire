@@ -8,7 +8,7 @@ python:
 
 install:
   - sudo pip install cffi six
-  - wget http://launchpadlibrarian.net/173007451/python-ceilometer_2014.1-0ubuntu1_all.deb
+  - wget http://mirrors.kernel.org/ubuntu/pool/main/c/ceilometer/python-ceilometer_2014.1-0ubuntu1_all.deb
   - sudo dpkg -i python-ceilometer_2014*.deb
   - git clone https://github.com/anchor/libmarquise.git ../libmarquise/
   - cd ../libmarquise/
