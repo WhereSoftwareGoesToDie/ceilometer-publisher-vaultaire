@@ -8,6 +8,7 @@ python:
 
 install:
   - sudo pip install cffi six
+  - sudo add-apt-repository -y "deb http://archive.ubuntu.com/ubuntu/ ${UBUNTU_RELEASE} main universe"
   - sudo apt-get update
   - sudo apt-get install python-ceilometer
   - git clone https://github.com/anchor/libmarquise.git ../libmarquise/
