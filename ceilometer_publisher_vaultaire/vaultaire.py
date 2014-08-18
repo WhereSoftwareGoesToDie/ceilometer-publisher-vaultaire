@@ -152,7 +152,7 @@ class VaultairePublisher(publisher.PublisherBase):
 
                 # If it's a cumulative value, we need to tell vaultaire
                 if sourcedict["type"] == "cumulative":
-                    sourcedict["_counter"] == 1
+                    sourcedict["_counter"] = 1
 
                 # Cast Identifier sections with unique names, in case of metadata overlap
                 sourcedict["counter_name"] = sourcedict.pop("name")
