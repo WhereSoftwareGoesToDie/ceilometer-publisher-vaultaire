@@ -4,6 +4,8 @@ python:
   - 2.7
 
 install:
+  - sudo pip install cffi six
+  - sudo apt-get install python-ceilometer
   - git clone https://github.com/anchor/libmarquise.git ../libmarquise/
   - cd ../libmarquise/
   - autoreconf -i
@@ -13,13 +15,6 @@ install:
   - sudo su -c "echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf"
   - sudo ldconfig
   - cd -
-  - git clone https://github.com/openstack/ceilometer ../ceilometer
-  - cd ../ceilometer
-  - sudo python setup.py install
-  - cd -
-  - sudo pip install cffi
-  - sudo pip install six
-
 
 script:
   - sudo python setup.py install
