@@ -19,7 +19,7 @@ setup(
     description="A publisher plugin for Ceilometer that outputs to Vaultaire",
     author="Barney Desmond",
     author_email="engineering@anchor.net.au",
-    url="https://github.com/anchor/FIXME",
+    url="https://github.com/anchor/ceilometer-publisher-vaultaire",
     zip_safe=False,
     packages=[
         "ceilometer_publisher_vaultaire", # Does anyone know what this means?
@@ -36,4 +36,5 @@ setup(
         ],
     },
     install_requires=[str(req.req) for req in parse_requirements("requirements.txt")],
+    include_package_data=True
 )
