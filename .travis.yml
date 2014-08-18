@@ -1,12 +1,16 @@
 language: python
 
+env:
+  - 'UBUNTU_RELEASE=trusty'
+
 python:
-  - 3.4
-  - 3.3
-  - 3.2
   - 2.7
 
-before_install:
+install:
+  - sudo pip install cffi six
+  - sudo add-apt-repository -y "deb http://archive.ubuntu.com/ubuntu/ ${UBUNTU_RELEASE} main universe"
+  - sudo apt-get update
+  - sudo apt-get install python-ceilometer
   - git clone https://github.com/anchor/libmarquise.git ../libmarquise/
   - cd ../libmarquise/
   - autoreconf -i
@@ -16,7 +20,6 @@ before_install:
   - sudo su -c "echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf"
   - sudo ldconfig
   - cd -
-  - sudo pip install cffi
 
 script:
   - sudo python setup.py install
