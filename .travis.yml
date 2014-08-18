@@ -1,5 +1,8 @@
 language: python
 
+env:
+  - 'UBUNTU_RELEASE=trusty'
+
 python:
   - 2.7
 
