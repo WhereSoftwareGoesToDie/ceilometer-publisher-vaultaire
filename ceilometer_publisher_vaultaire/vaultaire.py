@@ -21,7 +21,6 @@ from ceilometer import publisher
 
 from marquise import Marquise
 
-from pprint import pprint
 from pprint import pformat
 import datetime
 from dateutil.parser import parse
@@ -101,6 +100,7 @@ def flatten(n, prefix=""):
     return flattened_dict
 
 
+# pylint: disable=too-few-public-methods
 class VaultairePublisher(publisher.PublisherBase):
     """Implements the Publisher interface for Ceilometer."""
     def __init__(self, parsed_url):
