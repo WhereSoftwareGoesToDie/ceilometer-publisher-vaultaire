@@ -150,6 +150,10 @@ class VaultairePublisher(publisher.PublisherBase):
                 # Cast unit as a special metadata type
                 sourcedict["_unit"] = sourcedict.pop("unit")
 
+                # If it's a cumulative value, we need to tell vaultaire
+                if sourcedict["type"] == "cumulative":
+                    sourcedict["_counter"] = 1
+
                 # Cast Identifier sections with unique names, in case of metadata overlap
                 sourcedict["counter_name"] = sourcedict.pop("name")
                 sourcedict["counter_type"] = sourcedict.pop("type")
