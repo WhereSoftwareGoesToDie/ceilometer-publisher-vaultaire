@@ -41,6 +41,8 @@ def sanitize(v):
         return ""
     if v in (True,False):
         return 1 if v is True else 0
+    if type(v) is unicode:
+        v = str(v)
     try:
         # Try and take a value and use dateutil to parse it.  If there's no TZ
         # spec in the string, assume it's UTC because that's what Ceilometer
@@ -125,7 +127,6 @@ class VaultairePublisher(publisher.PublisherBase):
             marq = self.marquise
             for sample in samples:
                 sample = sample.as_dict()
-                LOG.debug(_("Vaultaire Publisher got sample:\n%s") % pformat(sample))
 
                 # Generate the unique identifer for the sample
                 identifier = sample["resource_id"] + sample["project_id"] + \
@@ -148,15 +149,15 @@ class VaultairePublisher(publisher.PublisherBase):
                     sourcedict["_extended"] = 1
 
                 # Cast unit as a special metadata type
-                sourcedict["_unit"] = sourcedict.pop("unit")
+                sourcedict["_unit"] = sanitize(sourcedict.pop("unit"))
 
                 # If it's a cumulative value, we need to tell vaultaire
                 if sourcedict["type"] == "cumulative":
                     sourcedict["_counter"] = 1
 
                 # Cast Identifier sections with unique names, in case of metadata overlap
-                sourcedict["counter_name"] = sourcedict.pop("name")
-                sourcedict["counter_type"] = sourcedict.pop("type")
+                sourcedict["counter_name"] = sanitize(sourcedict.pop("name"))
+                sourcedict["counter_type"] = sanitize(sourcedict.pop("type"))
 
                 # Remove elements that we know to always change (not very useful for a source dictionary)
                 del sourcedict["timestamp"]
