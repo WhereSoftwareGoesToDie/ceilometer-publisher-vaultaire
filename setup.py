@@ -21,7 +21,7 @@ setup(
         "ceilometer_publisher_vaultaire", # Does anyone know what this means?
     ],
     package_data={
-        "ceilometer_publisher_vaultaire" : ["VERSION"],
+        "ceilometer_publisher_vaultaire" : ["README.md"],
     },
     long_description=read("README"),
     classifiers=[
