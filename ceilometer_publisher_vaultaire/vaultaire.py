@@ -141,7 +141,7 @@ class VaultairePublisher(publisher.PublisherBase):
                 ## Instance related things
                 flavor_type = ""
                 ### If the flavor key is present, the value of instance_type is really instance_type_id
-                if "flavor" insample:
+                if "flavor" in sample:
                     flavor_type = sample["flavor"].get("name", "")
                 elif "instance_type" in sample:
                     flavor_type = sample["instance_type"]
