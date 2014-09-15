@@ -101,6 +101,19 @@ def flatten(n, prefix=""):
             flattened_dict.update(flatten(v, k))
     return flattened_dict
 
+def toEnum(instanceType):
+    ret = 0
+    if instanceType == "m1.tiny":
+        ret = 1
+    elif instanceType == "m1.small":
+        ret = 2
+    elif instanceType == "m1.medium"
+        ret = 3
+    elif instanceType == "m1.large"
+        ret = 4
+    elif instanceType == "m1.xlarge"
+        ret = 5
+    return ret
 
 # pylint: disable=too-few-public-methods
 class VaultairePublisher(publisher.PublisherBase):
@@ -127,17 +140,26 @@ class VaultairePublisher(publisher.PublisherBase):
             marq = self.marquise
             for sample in samples:
                 sample = sample.as_dict()
+                
+                name = sample["name"]
+                metadata = sample["resource_metadata"]
+                
                 # Generate the unique identifer for the sample
                 ## CPU
                 cpu_number = sample.get("cpu_number", "")
                 ## Events
-                event_type = sample["resource_metadata"].get("event_type", "")
+                event_type = metadata.get("event_type", "")
                 ### If this is event data we care about timestamp + message (Success/Failure)
                 timestamp = ""
                 message = ""
                 if event_type != "":
                     timestamp = sample["timestamp"]
                     message = sample["resource_metadata"].get("message", "")
+                    
+                ### TODO: CHECK IF THIS IS GOOD/RIGHT
+                if message == "" or message == "Failure":
+                    continue
+                    
                 ## Instance related things
                 flavor_type = ""
                 ### If the flavor key is present, the value of instance_type is really instance_type_id
@@ -147,42 +169,43 @@ class VaultairePublisher(publisher.PublisherBase):
                     flavor_type = sample["instance_type"]
                 ## Common = r_id + p_id + counter_(name, type, unit)
                 identifier = sample["resource_id"] + sample["project_id"] + \
-                             sample["name"] + sample["type"] + sample["unit"] + \
-                             event_type + flavor_type + cpu_number + message + timestamp
+                             name + sample["type"] + sample["unit"] + \
+                             flavor_type + cpu_number + message + timestamp
                 address = Marquise.hash_identifier(identifier)
-
-                # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
-                timestamp = sanitize(sample["timestamp"])
-
+                
+                #We always care about the project and resource IDs
+                sourcedict = {}
+                sourcedict["project-id"] = sample["project_id"]
+                sourcedict["resource-id"] = sample["resource_id"]
+                #Lets rename these to more closely match what we generally use
+                sourcedict["meter"] = name
+                # Cast unit as a special metadata type
+                sourcedict["uom"] = sanitize(sourcedict.pop("unit"))
+                sourcedict["meter-type"] = sample["type"]
+                
+                
                 # Our payload is the volume (later parsed to "counter_volume" in ceilometer)
                 payload = sanitize(sample["volume"])
-
-                # Rebuild the sample as a source dict
-                sourcedict = dict(sample)
-
+                # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
+                timestamp = sanitize(sample["timestamp"])
+                
+                # Add specific things per meter
+                if name == "cpu":
+                    sourcedict["cpu-number"] = metadata["cpu_number"]
+                elif name == "instance"
+                    if metadata["event_type"] == "compute.instance.end":
+                        payload = 0
+                    else:
+                        payload = toEnum(metadata["instance_type"])
                 # Vaultaire cares about the datatype of the payload
                 if type(payload) == float:
                     sourcedict["_float"] = 1
                 elif type(payload) == str:
                     sourcedict["_extended"] = 1
 
-                # Cast unit as a special metadata type
-                sourcedict["_unit"] = sanitize(sourcedict.pop("unit"))
-
                 # If it's a cumulative value, we need to tell vaultaire
                 if sourcedict["type"] == "cumulative":
                     sourcedict["_counter"] = 1
-
-                # Cast Identifier sections with unique names, in case of metadata overlap
-                sourcedict["counter_name"] = sanitize(sourcedict.pop("name"))
-                sourcedict["counter_type"] = sanitize(sourcedict.pop("type"))
-
-                # Remove elements that we know to always change (not very useful for a source dictionary)
-                del sourcedict["timestamp"]
-                del sourcedict["volume"]
-
-                # Remove the original resource_metadata and substitute our own flattened version
-                sourcedict.update(flatten(sourcedict.pop("resource_metadata")))
 
                 # Finally, send it all off to marquise
                 LOG.info(_("Marquise Send Simple: %s %s %s") % (address, timestamp, payload))
