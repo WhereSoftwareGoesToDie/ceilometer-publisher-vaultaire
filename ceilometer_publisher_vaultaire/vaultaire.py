@@ -128,15 +128,21 @@ class VaultairePublisher(publisher.PublisherBase):
             for sample in samples:
                 sample = sample.as_dict()
                 # Generate the unique identifer for the sample
+                ## CPU
+                cpu_number = sample.get("cpu_number", "")
+                ## Events
                 event_type = sample["resource_metadata"].get("event_type", "")
+                ## Instance related things
                 flavor_type = ""
-                if "instance_type" in sample:
-                    flavor_type = sample["instance_type"]
-                elif "flavor" in sample:
+                ### If the flavor key is present, the value of instance_type is really instance_type_id
+                if "flavor" insample:
                     flavor_type = sample["flavor"].get("name", "")
+                elif "instance_type" in sample:
+                    flavor_type = sample["instance_type"]
+                ## Common = r_id + p_id + counter_(name, type, unit)
                 identifier = sample["resource_id"] + sample["project_id"] + \
                              sample["name"] + sample["type"] + sample["unit"] + \
-                             event_type + flavor_type
+                             event_type + flavor_type + cpu_number
                 address = Marquise.hash_identifier(identifier)
 
                 # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
