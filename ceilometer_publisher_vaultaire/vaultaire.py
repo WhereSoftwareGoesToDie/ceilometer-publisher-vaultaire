@@ -127,10 +127,11 @@ class VaultairePublisher(publisher.PublisherBase):
             marq = self.marquise
             for sample in samples:
                 sample = sample.as_dict()
-
                 # Generate the unique identifer for the sample
+                event_type = sample["resource_metadata"].get("event_type", "")
                 identifier = sample["resource_id"] + sample["project_id"] + \
-                             sample["name"] + sample["type"] + sample["unit"]
+                             sample["name"] + sample["type"] + sample["unit"] + \
+                             event_type
                 address = Marquise.hash_identifier(identifier)
 
                 # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
