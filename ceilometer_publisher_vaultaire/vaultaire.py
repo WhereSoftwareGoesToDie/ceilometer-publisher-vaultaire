@@ -132,6 +132,12 @@ class VaultairePublisher(publisher.PublisherBase):
                 cpu_number = sample.get("cpu_number", "")
                 ## Events
                 event_type = sample["resource_metadata"].get("event_type", "")
+                ### If this is event data we care about timestamp + message (Success/Failure)
+                timestamp = ""
+                message = ""
+                if event_type != "":
+                    timestamp = sample["timestamp"]
+                    message = sample["resource_metadata"].get("message", "")
                 ## Instance related things
                 flavor_type = ""
                 ### If the flavor key is present, the value of instance_type is really instance_type_id
@@ -142,7 +148,7 @@ class VaultairePublisher(publisher.PublisherBase):
                 ## Common = r_id + p_id + counter_(name, type, unit)
                 identifier = sample["resource_id"] + sample["project_id"] + \
                              sample["name"] + sample["type"] + sample["unit"] + \
-                             event_type + flavor_type + cpu_number
+                             event_type + flavor_type + cpu_number + message + timestamp
                 address = Marquise.hash_identifier(identifier)
 
                 # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
