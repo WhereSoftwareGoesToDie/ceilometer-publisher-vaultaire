@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="ceilometer-publisher-vaultaire",
-    version="0.0.4",
+    version="0.0.5",
     description="A publisher plugin for Ceilometer that outputs to Vaultaire",
     author="Barney Desmond",
     author_email="engineering@anchor.net.au",
@@ -21,7 +21,7 @@ setup(
         "ceilometer_publisher_vaultaire", # Does anyone know what this means?
     ],
     package_data={
-        "ceilometer_publisher_vaultaire" : ["VERSION"],
+        "ceilometer_publisher_vaultaire" : ["README.md"],
     },
     long_description=read("README"),
     classifiers=[
