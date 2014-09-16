@@ -29,6 +29,8 @@ from dateutil.tz import tzutc
 from ceilometer.openstack.common.gettextutils import _
 from ceilometer.openstack.common import log
 
+import payload
+
 LOG = log.getLogger(__name__)
 
 
@@ -101,20 +103,6 @@ def flatten(n, prefix=""):
             flattened_dict.update(flatten(v, k))
     return flattened_dict
 
-def toEnum(instanceType):
-    ret = 0
-    if instanceType == "m1.tiny":
-        ret = 1
-    elif instanceType == "m1.small":
-        ret = 2
-    elif instanceType == "m1.medium"
-        ret = 3
-    elif instanceType == "m1.large"
-        ret = 4
-    elif instanceType == "m1.xlarge"
-        ret = 5
-    return ret
-
 # pylint: disable=too-few-public-methods
 class VaultairePublisher(publisher.PublisherBase):
     """Implements the Publisher interface for Ceilometer."""
@@ -155,11 +143,7 @@ class VaultairePublisher(publisher.PublisherBase):
                 if event_type != "":
                     timestamp = sample["timestamp"]
                     message = sample["resource_metadata"].get("message", "")
-                    
-                ### TODO: CHECK IF THIS IS GOOD/RIGHT
-                if message == "" or message == "Failure":
-                    continue
-                    
+                                        
                 ## Instance related things
                 flavor_type = ""
                 ### If the flavor key is present, the value of instance_type is really instance_type_id
@@ -192,11 +176,8 @@ class VaultairePublisher(publisher.PublisherBase):
                 # Add specific things per meter
                 if name == "cpu":
                     sourcedict["cpu-number"] = metadata["cpu_number"]
-                elif name == "instance"
-                    if metadata["event_type"] == "compute.instance.end":
-                        payload = 0
-                    else:
-                        payload = toEnum(metadata["instance_type"])
+                elif name == "instance":
+                    payload = constructPayload(metadata["event_type"], metadata["message"], instanceToRawPayload(metadata["instance_type"]))
                 # Vaultaire cares about the datatype of the payload
                 if type(payload) == float:
                     sourcedict["_float"] = 1
