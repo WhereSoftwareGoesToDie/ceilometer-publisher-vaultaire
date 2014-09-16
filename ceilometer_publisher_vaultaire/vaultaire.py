@@ -29,7 +29,7 @@ from dateutil.tz import tzutc
 from ceilometer.openstack.common.gettextutils import _
 from ceilometer.openstack.common import log
 
-import payload
+import payload as p
 
 LOG = log.getLogger(__name__)
 
@@ -161,11 +161,10 @@ class VaultairePublisher(publisher.PublisherBase):
                 sourcedict = {}
                 sourcedict["project-id"] = sample["project_id"]
                 sourcedict["resource-id"] = sample["resource_id"]
-                #Lets rename these to more closely match what we generally use
-                sourcedict["meter"] = name
+                sourcedict["counter_name"] = name
                 # Cast unit as a special metadata type
-                sourcedict["uom"] = sanitize(sourcedict.pop("unit"))
-                sourcedict["meter-type"] = sample["type"]
+                sourcedict["uom"] = sanitize(sample["unit"])
+                sourcedict["counter_type"] = sample["type"]
                 
                 
                 # Our payload is the volume (later parsed to "counter_volume" in ceilometer)
@@ -177,7 +176,7 @@ class VaultairePublisher(publisher.PublisherBase):
                 if name == "cpu":
                     sourcedict["cpu-number"] = metadata["cpu_number"]
                 elif name == "instance":
-                    payload = constructPayload(metadata["event_type"], metadata["message"], instanceToRawPayload(metadata["instance_type"]))
+                    payload = p.constructPayload(metadata["event_type"], metadata["message"], p.instanceToRawPayload(metadata["instance_type"]))
                 # Vaultaire cares about the datatype of the payload
                 if type(payload) == float:
                     sourcedict["_float"] = 1
@@ -185,7 +184,7 @@ class VaultairePublisher(publisher.PublisherBase):
                     sourcedict["_extended"] = 1
 
                 # If it's a cumulative value, we need to tell vaultaire
-                if sourcedict["type"] == "cumulative":
+                if sample["type"] == "cumulative":
                     sourcedict["_counter"] = 1
 
                 # Finally, send it all off to marquise
