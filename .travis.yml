@@ -24,4 +24,4 @@ install:
   - cd -
 
 script:
-  - sudo python setup.py install
+  - sudo python setup.py install -I/usr/include/glib-2.0
