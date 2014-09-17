@@ -22,7 +22,6 @@ install:
   - sudo su -c "echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf"
   - sudo ldconfig
   - cd -
-  - sudo ln -sv /usr/include/glib-2.0 /usr/include/glib
 
 script:
-  - sudo python setup.py install
+  - sudo python setup.py install build_ext -I/usr/include/glib-2.0
