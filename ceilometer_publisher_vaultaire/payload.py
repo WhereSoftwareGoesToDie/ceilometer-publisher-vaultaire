@@ -54,7 +54,7 @@ def constructPayload(event_type, message, rawPayload):
     if eventResolution is None:
         raise "Unsupported event endpoint given to eventToByte"
 
-    return eventResolution + eventVerb << 8 + eventEndPoint << 16 + rawPayload << 24
+    return eventResolution + eventVerb << 8 + eventEndPoint << 16 + rawPayload << 32
 
 def instanceToRawPayload(instanceType):
     if instanceType == "m1.tiny":
