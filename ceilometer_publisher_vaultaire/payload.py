@@ -39,7 +39,7 @@ def constructPayload(event_type, message, rawPayload):
     elif message == "Failure":
         eventResolution = 1
 
-    if event_type.startwith("image"):
+    if event_type.startswith("image"):
         _,verb = event_type.rsplit('.', 1)
     else:
         _,verb,endpoint = event_type.rsplit('.', 2)
