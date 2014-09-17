@@ -1,7 +1,7 @@
 language: python
 
 env:
-  - 'UBUNTU_RELEASE=trusty'
+  - 'UBUNTU_RELEASE=trusty CPATH=/usr/lib/x86_64-linux-gnu/glib-2.0/include:/usr/include/glib-2.0/:/usr/include'
 
 python:
   - 2.7
