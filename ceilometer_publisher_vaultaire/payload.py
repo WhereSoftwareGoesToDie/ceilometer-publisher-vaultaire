@@ -39,7 +39,7 @@ def constructPayload(event_type, message, rawPayload):
     elif message == "Failure":
         eventResolution = 1
 
-    if event_type.startwith("image"):
+    if event_type.startswith("image"):
         _,verb = event_type.rsplit('.', 1)
     else:
         _,verb,endpoint = event_type.rsplit('.', 2)
@@ -54,7 +54,7 @@ def constructPayload(event_type, message, rawPayload):
     if eventResolution is None:
         raise "Unsupported event endpoint given to eventToByte"
 
-    return eventResolution + eventVerb << 8 + eventEndPoint << 16 + rawPayload << 24
+    return eventResolution + eventVerb << 8 + eventEndPoint << 16 + rawPayload << 32
 
 def instanceToRawPayload(instanceType):
     if instanceType == "m1.tiny":
