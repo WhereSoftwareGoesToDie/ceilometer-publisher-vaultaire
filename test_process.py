@@ -1,18 +1,30 @@
-"""Fake up a ceilometer environment and throw some data points at Marquise, as
-though it came from ceilometer.
-"""
+import sys
 
+sys.path.insert(0,'./ceilometer_publisher_vaultaire')
+from process import process_sample
 import json
 import pprint
-from hashlib import sha1
-import sys
-sys.path.insert(0,'./ceilometer_publisher_vaultaire')
-from process import flatten
 
-class MarquiseFakeParsedUrl(object):
-    """Pretend to be a ceilometer publisher URL."""
-    def __init__(self, namespace):
-        self.netloc = namespace
+ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+def base62_encode(num, alphabet=ALPHABET):
+    """Encode a number in Base X
+
+    `num`: The number to encode
+    `alphabet`: The alphabet to use for encoding
+    """
+    if (num == 0):
+        return alphabet[0]
+    arr = []
+    base = len(alphabet)
+    while num:
+        rem = num % base
+        num = num // base
+        arr.append(alphabet[rem])
+    arr.reverse()
+    return ''.join(arr)
+
+
 
 class DictableDict(object):
     """Wrap a dict in an object that provides an as_dict method."""
@@ -77,21 +89,12 @@ sample_json = """
                     "volume": 332
                 }
 
-
 """
-#parsed_json = DictableDict(json.loads(sample_json))
-#samples = [parsed_json]
-samples = [ DictableDict(json.loads(x)) for x in [sample_json] ]
-normalised_sample_json = json.dumps(json.loads(sample_json))
-# XXX: Fuck inconsistent ordering of dicts, fix this tomorrow
-print("OrigSample JSON hashes to:    {}".format(sha1(sample_json.encode('utf8')).hexdigest()))
-print("NormSample JSON hashes to:    {}".format(sha1(normalised_sample_json.encode('utf8')).hexdigest()))
 
-flattened_json = flatten(json.loads(sample_json))
-print("Flattened JSON hashes to:     {}".format(sha1(json.dumps(flattened_json).encode('utf8')).hexdigest()))
-
-
-url = MarquiseFakeParsedUrl('testnamespace')
-
-#v = ceilometer_publisher_vaultaire.VaultairePublisher(url)
-#v.publish_samples(None, samples)
+sample = DictableDict(json.loads(sample_json))
+(a, b, c, d) = process_sample(sample)
+print ("Timestamp = {}".format(c))
+print ("Payload   = {}".format(d))
+print ("Address   = {}".format(base62_encode(a)))
+print ("SD =")
+pprint.pprint (b)

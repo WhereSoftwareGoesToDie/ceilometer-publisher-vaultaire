@@ -25,7 +25,7 @@
 # eventEndpoint defines whether the data represents an event start, end or an
 # instance event.
 # eventVerb takes up the 3rd LSByte
-# rawPayload takes up the 5 MSBytes (40 bits)
+# rawPayload takes up the 4 MSBytes (32 bits)
 # rawPayload is specific on counter
 def constructPayload(event_type, message, rawPayload):
     #If no event endpoint is included, assume instantaneous event (e.g. image deletion)
