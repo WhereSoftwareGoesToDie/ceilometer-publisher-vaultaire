@@ -41,8 +41,8 @@ def process_sample(sample):
     
     #We always care about the project and resource IDs
     sourcedict = {}
-    sourcedict["project-id"] = sample["project_id"]
-    sourcedict["resource-id"] = sample["resource_id"]
+    sourcedict["project_id"] = sample["project_id"]
+    sourcedict["resource_id"] = sample["resource_id"]
     sourcedict["counter_name"] = name
     # Cast unit as a special metadata type
     sourcedict["uom"] = sanitize(sample["unit"])
@@ -56,7 +56,7 @@ def process_sample(sample):
     
     # Add specific things per meter
     if name == "cpu":
-        sourcedict["cpu-number"] = metadata["cpu_number"]
+        sourcedict["cpu_number"] = metadata["cpu_number"]
     elif name == "instance":
         payload = p.constructPayload(metadata["event_type"], metadata["message"], p.instanceToRawPayload(metadata["instance_type"]))
     # Vaultaire cares about the datatype of the payload
