@@ -68,5 +68,6 @@ def instanceToRawPayload(instanceType):
     elif instanceType == "m1.xlarge":
         ret = 5
     else:
-        raise "unsupported instance type given to instanceToPayload"
+        ret = 0
+#        raise "unsupported instance type given to instanceToPayload"
     return ret
