@@ -13,7 +13,7 @@ def process_sample(sample):
     sample = sample.as_dict()
     name = sample["name"]
     metadata = sample["resource_metadata"]
-    
+
     # Generate the unique identifer for the sample
     ## CPU
     cpu_number = sample.get("cpu_number", "")
@@ -25,7 +25,7 @@ def process_sample(sample):
     if event_type != "":
         timestamp = sample["timestamp"]
         message = sample["resource_metadata"].get("message", "")
-                            
+
     ## Instance related things
     flavor_type = ""
     ### If the flavor key is present, the value of instance_type is really instance_type_id
@@ -38,7 +38,7 @@ def process_sample(sample):
                  name + sample["type"] + sample["unit"] + \
                  flavor_type + cpu_number + message + timestamp
     address = Marquise.hash_identifier(identifier)
-    
+
     #We always care about the project and resource IDs
     sourcedict = {}
     sourcedict["project_id"] = sample["project_id"]
@@ -47,13 +47,13 @@ def process_sample(sample):
     # Cast unit as a special metadata type
     sourcedict["uom"] = sanitize(sample["unit"])
     sourcedict["counter_type"] = sample["type"]
-    
-    
+
+
     # Our payload is the volume (later parsed to "counter_volume" in ceilometer)
     payload = sanitize(sample["volume"])
     # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
     timestamp = sanitize(sample["timestamp"])
-    
+
     # Add specific things per meter
     if name == "cpu":
         sourcedict["cpu_number"] = metadata["cpu_number"]
