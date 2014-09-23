@@ -11,63 +11,71 @@ import payload as p
 
 def process_sample(sample):
     sample = sample.as_dict()
-    name = sample["name"]
-    metadata = sample["resource_metadata"]
 
-    # Generate the unique identifer for the sample
-    ## CPU
-    cpu_number = sample.get("cpu_number", "")
-    ## Events
-    event_type = metadata.get("event_type", "")
-    ### If this is event data we care about timestamp + message (Success/Failure)
-    timestamp = ""
-    message = ""
-    if event_type != "":
-        timestamp = sample["timestamp"]
-        message = sample["resource_metadata"].get("message", "")
+    # Pull out and clean fields which are always present
 
-    ## Instance related things
-    flavor_type = ""
-    ### If the flavor key is present, the value of instance_type is really instance_type_id
-    if "flavor" in sample:
-        flavor_type = sample["flavor"].get("name", "")
-    elif "instance_type" in sample:
-        flavor_type = sample["instance_type"]
-    ## Common = r_id + p_id + counter_(name, type, unit)
-    identifier = sample["resource_id"] + sample["project_id"] + \
-                 name + sample["type"] + sample["unit"] + \
-                 flavor_type + cpu_number + message + timestamp
-    address = Marquise.hash_identifier(identifier)
-
-    #We always care about the project and resource IDs
-    sourcedict = {}
-    sourcedict["project_id"] = sample["project_id"]
-    sourcedict["resource_id"] = sample["resource_id"]
-    sourcedict["counter_name"] = name
-    # Cast unit as a special metadata type
-    sourcedict["uom"] = sanitize(sample["unit"])
-    sourcedict["counter_type"] = sample["type"]
-
-
-    # Our payload is the volume (later parsed to "counter_volume" in ceilometer)
-    payload = sanitize(sample["volume"])
-    # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
-    timestamp = sanitize(sample["timestamp"])
-
-    # Add specific things per meter
-    if name == "cpu":
-        sourcedict["cpu_number"] = metadata["cpu_number"]
-    elif name == "instance":
+    name         = sample["name"]
+    project_id   = sample["project-id"]
+    resource_id  = sample["resource_id"]
+    metadata     = sample["resource_metadata"]
+    ## Cast unit as a special metadata type
+    counter_unit = sanitise(sample["unit"])
+    counter_type = sample["type"]
+    ## Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
+    timestamp    = sanitize(sample["timestamp"])
+    ## Our payload is the volume (later parsed to "counter_volume" in ceilometer)
+    payload      = sanitize(sample["volume"])
+    ## Modify the payload for instance events
+    if name.startswith("instance"):
         payload = p.constructPayload(metadata["event_type"], metadata["message"], p.instanceToRawPayload(metadata["instance_type"]))
-    # Vaultaire cares about the datatype of the payload
+
+    # Build the source dict
+
+    sourcedict = {}
+    sourcedict["project_id"]   = project_id
+    sourcedict["resource_id"]  = resource_id
+    sourcedict["counter_name"] = name
+    sourcedict["counter_unit"] = counter_unit
+    sourcedict["counter_type"] = counter_type
+
+    ## Vaultaire cares about the datatype of the payload
     if type(payload) == float:
         sourcedict["_float"] = 1
     elif type(payload) == str:
         sourcedict["_extended"] = 1
 
-    # If it's a cumulative value, we need to tell vaultaire
-    if sample["type"] == "cumulative":
+    ## If it's a cumulative value, we need to tell vaultaire
+    if counter_type == "cumulative":
         sourcedict["_counter"] = 1
+
+    ## We need to indicate when data is event-based
+    event_type = metadata.get("event_type", "")
+    if event_type != "":
+        sourcedict["_event"] = 1
+
+    ## Add specifics for CPU
+    cpu_number = metadata.get("cpu_number", "")
+    if name == "cpu":
+        sourcedict["cpu_number"] = cpu_number
+
+    # Generate the unique identifer for the sample
+
+    ## Instance-specific
+
+    ## If the flavor object is present, the flavor type is the "name" field of the flavor object
+    ## Otherwise it is "instance_type"
+    flavor_type = ""
+    if "flavor" in sample:
+        flavor_type = sample["flavor"].get("name", "")
+    elif "instance_type" in sample:
+        flavor_type = sample["instance_type"]
+
+    ## Common = r_id + p_id + counter_(name, type, unit)
+    ## When present we also care about resource-specifics.
+    ## Currently flavor type and cpu_number
+    identifier = resource_id + project_id + name + counter_type + counter_unit + \
+                 flavor_type + cpu_number
+    address = Marquise.hash_identifier(identifier)
 
     return (address, sourcedict, timestamp, payload)
 
