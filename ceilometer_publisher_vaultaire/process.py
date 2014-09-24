@@ -107,8 +107,6 @@ def process_consolidated(sample):
     ## Vaultaire cares about the datatype of the payload
     if type(payload) == float:
         sourcedict["_float"] = 1
-    elif type(payload) == str:
-        sourcedict["_extended"] = 1
 
     ## If it's a cumulative value, we need to tell vaultaire
     if counter_type == "cumulative":
