@@ -15,36 +15,62 @@ def process_sample(sample):
     processed.append(process_raw(sample))
     return processed
 
+def _remove_extraneous(sourcedict):
+    keys_to_delete = [
+        "timestamp",
+        "volume",
+        "created_at",
+        "updated_at",
+    ]
+    for k in keys_to_delete:
+        try:
+            del[sourcedict[k]]
+        except KeyError:
+            pass
+
+
 #Potentially destructive on sample
 def process_raw(sample):
     # Generate the unique identifer for the sample
     identifier = sample["resource_id"] + sample["project_id"] + \
                  sample["name"] + sample["type"] + sample["unit"]
     address = Marquise.hash_identifier(identifier)
+
     # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
     timestamp = sanitize_timestamp(sample["timestamp"])
-    # Our payload is the volume (later parsed to "counter_volume" in ceilometer)
+
+    # Our payload is the volume (later parsed to
+    # "counter_volume" in ceilometer)
     payload = sanitize(sample["volume"])
+
     # Rebuild the sample as a source dict
     sourcedict = dict(sample)
+
     # Vaultaire cares about the datatype of the payload
     if type(payload) == float:
         sourcedict["_float"] = 1
-    elif type(payload) == str:
-        sourcedict["_extended"] = 1
+
     # Cast unit as a special metadata type
     sourcedict["_unit"] = sanitize(sourcedict.pop("unit"))
+
     # If it's a cumulative value, we need to tell vaultaire
     if sourcedict["type"] == "cumulative":
         sourcedict["_counter"] = 1
-    # Cast Identifier sections with unique names, in case of metadata overlap
+
+    # Cast Identifier sections with unique names, in case of
+    # metadata overlap
+
+    # XXX: why do we call these counter_* even when they're
+    # not counters?
     sourcedict["counter_name"] = sanitize(sourcedict.pop("name"))
     sourcedict["counter_type"] = sanitize(sourcedict.pop("type"))
-    # Remove elements that we know to always change (not very useful for a source dictionary)
-    del sourcedict["timestamp"]
-    del sourcedict["volume"]
-    # Remove the original resource_metadata and substitute our own flattened version
+
+    _remove_extraneous(sourcedict)
+
+    # Remove the original resource_metadata and substitute
+    # our own flattened version
     sourcedict.update(flatten(sourcedict.pop("resource_metadata")))
+
     for k, v in sourcedict.iteritems():
         sourcedict[k] = sanitize(str(v))
     return (address, sourcedict, timestamp, payload)

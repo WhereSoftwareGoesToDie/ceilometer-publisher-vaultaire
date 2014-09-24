@@ -35,6 +35,9 @@ LOG = log.getLogger(__name__)
 
 # pylint: disable=too-few-public-methods
 class VaultairePublisher(publisher.PublisherBase):
+    # We will delete keys which are likely to change frequently, or that
+    # are otherwise undesirable.
+
     """Implements the Publisher interface for Ceilometer."""
     def __init__(self, parsed_url):
         super(VaultairePublisher, self).__init__(parsed_url)
@@ -61,6 +64,7 @@ class VaultairePublisher(publisher.PublisherBase):
                 for (address, sourcedict, timestamp, payload) in processed:
                     # Send it all off to marquise
                     LOG.info(_("Marquise Send Simple: %s %s %s") % (address, timestamp, payload))
+                    # XXX: do we want to support extended points here?
                     marq.send_simple(address=address, timestamp=timestamp, value=payload)
 
                     LOG.debug(_("Marquise Update Source Dict for %s - %s") % (address, pformat(sourcedict)))
