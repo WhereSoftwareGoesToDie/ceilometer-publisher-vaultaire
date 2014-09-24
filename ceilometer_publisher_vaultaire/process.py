@@ -78,7 +78,7 @@ def process_consolidated(sample):
     sourcedict["counter_name"]  = name
     sourcedict["counter_unit"]  = counter_unit
     sourcedict["counter_type"]  = counter_type
-
+    sourcedict["display_name"]  = sample.get("display_name", "")
     ## Vaultaire cares about the datatype of the payload
     if type(payload) == float:
         sourcedict["_float"] = 1
