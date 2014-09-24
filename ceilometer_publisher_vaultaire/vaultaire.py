@@ -29,7 +29,7 @@ from ceilometer.openstack.common.gettextutils import _
 from ceilometer.openstack.common import log
 
 import payload as p
-import process
+import process as pr
 
 LOG = log.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class VaultairePublisher(publisher.PublisherBase):
         if self.marquise:
             marq = self.marquise
             for sample in samples:
-                processed = process_sample(sample)
+                processed = pr.process_sample(sample)
                 for (address, sourcedict, timestamp, payload) in processed:
                     # Send it all off to marquise
                     LOG.info(_("Marquise Send Simple: %s %s %s") % (address, timestamp, payload))
