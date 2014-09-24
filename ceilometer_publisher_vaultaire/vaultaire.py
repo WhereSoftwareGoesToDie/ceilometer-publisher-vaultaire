@@ -146,7 +146,8 @@ class VaultairePublisher(publisher.PublisherBase):
                 # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
                 timestamp = sanitize_timestamp(sample["timestamp"])
 
-                # Our payload is the volume (later parsed to "counter_volume" in ceilometer)
+                # Our payload is the volume (later parsed to
+                # "counter_volume" in ceilometer)
                 payload = sanitize(sample["volume"])
 
                 # Rebuild the sample as a source dict
@@ -163,13 +164,18 @@ class VaultairePublisher(publisher.PublisherBase):
                 if sourcedict["type"] == "cumulative":
                     sourcedict["_counter"] = 1
 
-                # Cast Identifier sections with unique names, in case of metadata overlap
+                # Cast Identifier sections with unique names, in case of
+                # metadata overlap
+
+                # XXX: why do we call these counter_* even when they're
+                # not counters?
                 sourcedict["counter_name"] = sanitize(sourcedict.pop("name"))
                 sourcedict["counter_type"] = sanitize(sourcedict.pop("type"))
 
                 self._remove_extraneous(sourcedict)
 
-                # Remove the original resource_metadata and substitute our own flattened version
+                # Remove the original resource_metadata and substitute
+                # our own flattened version
                 sourcedict.update(flatten(sourcedict.pop("resource_metadata")))
 
                 # Finally, send it all off to marquise
