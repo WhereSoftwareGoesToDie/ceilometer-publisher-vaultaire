@@ -57,7 +57,7 @@ def process_consolidated(sample):
     resource_id  = sample["resource_id"]
     metadata     = sample["resource_metadata"]
     ## Cast unit as a special metadata type
-    counter_unit = sanitise(sample["unit"])
+    counter_unit = sanitize(sample["unit"])
     counter_type = sample["type"]
     ## Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
     timestamp    = sanitize(sample["timestamp"])
