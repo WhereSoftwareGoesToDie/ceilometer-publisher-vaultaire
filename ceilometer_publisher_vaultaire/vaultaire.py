@@ -155,8 +155,6 @@ class VaultairePublisher(publisher.PublisherBase):
                 # Vaultaire cares about the datatype of the payload
                 if type(payload) == float:
                     sourcedict["_float"] = 1
-                elif type(payload) == str:
-                    sourcedict["_extended"] = 1
 
                 # Cast unit as a special metadata type
                 sourcedict["_unit"] = sanitize(sourcedict.pop("unit"))
@@ -176,6 +174,7 @@ class VaultairePublisher(publisher.PublisherBase):
 
                 # Finally, send it all off to marquise
                 LOG.info(_("Marquise Send Simple: %s %s %s") % (address, timestamp, payload))
+                # XXX: do we want to support extended points here?
                 marq.send_simple(address=address, timestamp=timestamp, value=payload)
 
                 LOG.debug(_("Marquise Update Source Dict for %s - %s") % (address, pformat(sourcedict)))
