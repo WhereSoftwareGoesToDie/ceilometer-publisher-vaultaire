@@ -47,7 +47,8 @@ def process_raw(sample):
     del sourcedict["volume"]
     # Remove the original resource_metadata and substitute our own flattened version
     sourcedict.update(flatten(sourcedict.pop("resource_metadata")))
-
+    for k, v in sourcedict.iteritems():
+        sourcedict[k] = sanitize(str(v))
     return (address, sourcedict, timestamp, payload)
 
 def process_consolidated(sample):
