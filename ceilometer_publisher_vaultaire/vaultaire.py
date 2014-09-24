@@ -110,6 +110,8 @@ class VaultairePublisher(publisher.PublisherBase):
     keys_to_delete = [
         "timestamp",
         "volume",
+        "created_at",
+        "updated_at",
     ]
 
     """Implements the Publisher interface for Ceilometer."""
