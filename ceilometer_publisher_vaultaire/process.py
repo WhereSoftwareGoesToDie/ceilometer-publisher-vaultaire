@@ -53,7 +53,7 @@ def process_consolidated(sample):
     # Pull out and clean fields which are always present
 
     name         = sample["name"]
-    project_id   = sample["project-id"]
+    project_id   = sample["project_id"]
     resource_id  = sample["resource_id"]
     metadata     = sample["resource_metadata"]
     ## Cast unit as a special metadata type
