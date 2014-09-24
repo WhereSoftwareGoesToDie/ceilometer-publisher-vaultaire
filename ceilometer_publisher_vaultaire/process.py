@@ -135,7 +135,7 @@ def process_consolidated(sample):
     ## When present we also care about resource-specifics.
     ## Currently flavor type and cpu_number
     identifier = resource_id + project_id + name + counter_type + counter_unit + \
-                 flavor_type + cpu_number
+                 flavor_type + cpu_number + "_event"
     address = Marquise.hash_identifier(identifier)
 
     return (address, sourcedict, timestamp, payload)
