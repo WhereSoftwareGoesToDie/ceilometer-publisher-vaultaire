@@ -72,7 +72,6 @@ def process_consolidated(sample):
 
     sourcedict = {}
     sourcedict["_event"]        = 1
-    sourcedict["_consolidated"] = 1
     sourcedict["project_id"]    = project_id
     sourcedict["resource_id"]   = resource_id
     sourcedict["counter_name"]  = name
