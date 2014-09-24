@@ -48,8 +48,6 @@ class VaultairePublisher(publisher.PublisherBase):
         LOG.info(_("Marquise loaded with namespace %s" % namespace))
         self.marquise = Marquise(namespace)
 
-
-
     def publish_samples(self, dummy_context, samples):
         """Reconstruct a metering message for publishing to Vaultaire via Marquise
 
