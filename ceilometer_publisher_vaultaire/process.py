@@ -7,6 +7,13 @@ from marquise import Marquise
 
 import payload as p
 
+keys_to_delete = [
+    "timestamp",
+    "volume",
+    "created_at",
+    "updated_at",
+]
+
 def process_sample(sample):
     sample = sample.as_dict()
     processed = []
@@ -16,12 +23,6 @@ def process_sample(sample):
     return processed
 
 def _remove_extraneous(sourcedict):
-    keys_to_delete = [
-        "timestamp",
-        "volume",
-        "created_at",
-        "updated_at",
-    ]
     for k in keys_to_delete:
         try:
             del[sourcedict[k]]
