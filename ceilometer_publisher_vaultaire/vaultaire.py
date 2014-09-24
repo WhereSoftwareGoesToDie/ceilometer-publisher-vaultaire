@@ -105,6 +105,13 @@ def sanitize_timestamp(v):
 
 # pylint: disable=too-few-public-methods
 class VaultairePublisher(publisher.PublisherBase):
+    # We will delete keys which are likely to change frequently, or that
+    # are otherwise undesirable.
+    keys_to_delete = [
+        "timestamp",
+        "volume",
+    ]
+
     """Implements the Publisher interface for Ceilometer."""
     def __init__(self, parsed_url):
         super(VaultairePublisher, self).__init__(parsed_url)
@@ -160,9 +167,7 @@ class VaultairePublisher(publisher.PublisherBase):
                 sourcedict["counter_name"] = sanitize(sourcedict.pop("name"))
                 sourcedict["counter_type"] = sanitize(sourcedict.pop("type"))
 
-                # Remove elements that we know to always change (not very useful for a source dictionary)
-                del sourcedict["timestamp"]
-                del sourcedict["volume"]
+                self._remove_extraneous(sourcedict)
 
                 # Remove the original resource_metadata and substitute our own flattened version
                 sourcedict.update(flatten(sourcedict.pop("resource_metadata")))
@@ -173,3 +178,10 @@ class VaultairePublisher(publisher.PublisherBase):
 
                 LOG.debug(_("Marquise Update Source Dict for %s - %s") % (address, pformat(sourcedict)))
                 marq.update_source(address, sourcedict)
+
+    def _remove_extraneous(self, sourcedict):
+        for k in keys_to_delete:
+            try:
+                del[sourcedict[k]]
+            except KeyError:
+                pass
