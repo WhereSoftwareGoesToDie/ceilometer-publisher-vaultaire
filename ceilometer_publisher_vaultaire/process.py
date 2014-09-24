@@ -11,7 +11,46 @@ import payload as p
 
 def process_sample(sample):
     sample = sample.as_dict()
+    processed = []
+    if ("event_type" in sample["resource_metadata"]):
+        processed.append(process_consolidated(sample))
+    processed.append(process_raw(sample))
+    return processed
 
+#Potentially destructive on sample
+def process_raw(sample):
+    # Generate the unique identifer for the sample
+    identifier = sample["resource_id"] + sample["project_id"] + \
+                 sample["name"] + sample["type"] + sample["unit"]
+    address = Marquise.hash_identifier(identifier)
+    # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
+    timestamp = sanitize(sample["timestamp"])
+    # Our payload is the volume (later parsed to "counter_volume" in ceilometer)
+    payload = sanitize(sample["volume"])
+    # Rebuild the sample as a source dict
+    sourcedict = dict(sample)
+    # Vaultaire cares about the datatype of the payload
+    if type(payload) == float:
+        sourcedict["_float"] = 1
+    elif type(payload) == str:
+        sourcedict["_extended"] = 1
+    # Cast unit as a special metadata type
+    sourcedict["_unit"] = sanitize(sourcedict.pop("unit"))
+    # If it's a cumulative value, we need to tell vaultaire
+    if sourcedict["type"] == "cumulative":
+        sourcedict["_counter"] = 1
+    # Cast Identifier sections with unique names, in case of metadata overlap
+    sourcedict["counter_name"] = sanitize(sourcedict.pop("name"))
+    sourcedict["counter_type"] = sanitize(sourcedict.pop("type"))
+    # Remove elements that we know to always change (not very useful for a source dictionary)
+    del sourcedict["timestamp"]
+    del sourcedict["volume"]
+    # Remove the original resource_metadata and substitute our own flattened version
+    sourcedict.update(flatten(sourcedict.pop("resource_metadata")))
+
+    return (address, sourcedict, timestamp, payload)
+
+def process_consolidated(sample):
     # Pull out and clean fields which are always present
 
     name         = sample["name"]
@@ -32,11 +71,13 @@ def process_sample(sample):
     # Build the source dict
 
     sourcedict = {}
-    sourcedict["project_id"]   = project_id
-    sourcedict["resource_id"]  = resource_id
-    sourcedict["counter_name"] = name
-    sourcedict["counter_unit"] = counter_unit
-    sourcedict["counter_type"] = counter_type
+    sourcedict["_event"]        = 1
+    sourcedict["_consolidated"] = 1
+    sourcedict["project_id"]    = project_id
+    sourcedict["resource_id"]   = resource_id
+    sourcedict["counter_name"]  = name
+    sourcedict["counter_unit"]  = counter_unit
+    sourcedict["counter_type"]  = counter_type
 
     ## Vaultaire cares about the datatype of the payload
     if type(payload) == float:
@@ -47,11 +88,6 @@ def process_sample(sample):
     ## If it's a cumulative value, we need to tell vaultaire
     if counter_type == "cumulative":
         sourcedict["_counter"] = 1
-
-    ## We need to indicate when data is event-based
-    event_type = metadata.get("event_type", "")
-    if event_type != "":
-        sourcedict["_event"] = 1
 
     ## Add specifics for CPU
     cpu_number = metadata.get("cpu_number", "")

@@ -59,11 +59,11 @@ class VaultairePublisher(publisher.PublisherBase):
         if self.marquise:
             marq = self.marquise
             for sample in samples:
-                (address, sourcedict, timestamp, payload) = process_sample(sample) 
+                processed = process_sample(sample)
+                for (address, sourcedict, timestamp, payload) in processed:
+                    # Send it all off to marquise
+                    LOG.info(_("Marquise Send Simple: %s %s %s") % (address, timestamp, payload))
+                    marq.send_simple(address=address, timestamp=timestamp, value=payload)
 
-                # Finally, send it all off to marquise
-                LOG.info(_("Marquise Send Simple: %s %s %s") % (address, timestamp, payload))
-                marq.send_simple(address=address, timestamp=timestamp, value=payload)
-
-                LOG.debug(_("Marquise Update Source Dict for %s - %s") % (address, pformat(sourcedict)))
-                marq.update_source(address, sourcedict)
+                    LOG.debug(_("Marquise Update Source Dict for %s - %s") % (address, pformat(sourcedict)))
+                    marq.update_source(address, sourcedict)

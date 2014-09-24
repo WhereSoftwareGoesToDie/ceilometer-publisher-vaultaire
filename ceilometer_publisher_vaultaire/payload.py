@@ -71,3 +71,6 @@ def instanceToRawPayload(instanceType):
         ret = 0
 #        raise "unsupported instance type given to instanceToPayload"
     return ret
+
+def ipAllocToRawPayload():
+    return 1

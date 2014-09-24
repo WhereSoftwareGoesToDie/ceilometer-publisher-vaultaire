@@ -92,9 +92,10 @@ sample_json = """
 """
 
 sample = DictableDict(json.loads(sample_json))
-(a, b, c, d) = process_sample(sample)
-print ("Timestamp = {}".format(c))
-print ("Payload   = {}".format(d))
-print ("Address   = {}".format(base62_encode(a)))
-print ("SD =")
-pprint.pprint (b)
+for (a, b, c, d) in process_sample(sample):
+    print ("Timestamp = {}".format(c))
+    print ("Payload   = {}".format(d))
+    print ("Address   = {}".format(base62_encode(a)))
+    print ("SD =")
+    pprint.pprint (b)
+    print
