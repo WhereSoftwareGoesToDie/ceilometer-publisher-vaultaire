@@ -87,7 +87,7 @@ def process_consolidated(sample):
     counter_unit = sanitize(sample["unit"])
     counter_type = sample["type"]
     ## Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
-    timestamp    = sanitize(sample["timestamp"])
+    timestamp    = sanitize_timestamp(sample["timestamp"])
     ## Our payload is the volume (later parsed to "counter_volume" in ceilometer)
     payload      = sanitize(sample["volume"])
     ## Modify the payload for instance events
