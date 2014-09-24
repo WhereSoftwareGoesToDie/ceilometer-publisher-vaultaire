@@ -43,31 +43,10 @@ def sanitize(v):
         return 1 if v is True else 0
     if type(v) is unicode:
         v = str(v)
-    try:
-        # Try and take a value and use dateutil to parse it.  If there's no TZ
-        # spec in the string, assume it's UTC because that's what Ceilometer
-        # uses.
-        # Eg. 2014-08-10T12:14:13Z      # timezone-aware
-        # Eg. 2014-08-10 12:14:13       # timezone-naive
-        # Eg. 2014-08-10 12:14:13+1000  # timezone-aware
-        NANOSECONDS_PER_SECOND = 10**9
-        if type(v) is datetime.datetime:
-            timestamp = v
-        else: # We have a string.
-            timestamp = parse(v)
-            if timestamp.tzinfo is None:
-                timestamp = timestamp.replace(tzinfo=tzutc())
-        # If we get here, we've successfully grabbed a datetime.
-        epoch = datetime.datetime(1970, 1, 1, tzinfo=tzutc())
-        time_since_epoch = (timestamp - epoch).total_seconds() # total_seconds() is in Py2.7 and later.
-        return int(time_since_epoch * NANOSECONDS_PER_SECOND)
-    except (ValueError,AttributeError): # ValueError for bad strings, AttributeError for bad input type.
-        # If parsing fails then assume it's not a valid datestamp/timestamp.
-        # Instead, treat it as a primitive type and stringify it accordingly.
-        if type(v) is str: # XXX: will be incorrect/ambiguous in Python 3.
-            v = v.replace(":","-")
-            v = v.replace(",","-")
-        return v
+    if type(v) is str: # XXX: will be incorrect/ambiguous in Python 3.
+        v = v.replace(":","-")
+        v = v.replace(",","-")
+    return v
 
 def flatten(n, prefix=""):
     """Take a (potentially) nested dictionary and flatten it into a single
@@ -101,6 +80,28 @@ def flatten(n, prefix=""):
             flattened_dict.update(flatten(v, k))
     return flattened_dict
 
+def sanitize_timestamp(v):
+    """Convert a timestamp value into a standard form. Does no exception
+    handling, as we really want to know if this fails."""
+    if type(v) is unicode:
+        v = str(v)
+    # Try and take a value and use dateutil to parse it.  If there's no TZ
+    # spec in the string, assume it's UTC because that's what Ceilometer
+    # uses.
+    # Eg. 2014-08-10T12:14:13Z      # timezone-aware
+    # Eg. 2014-08-10 12:14:13       # timezone-naive
+    # Eg. 2014-08-10 12:14:13+1000  # timezone-aware
+    NANOSECONDS_PER_SECOND = 10**9
+    if type(v) is datetime.datetime:
+        timestamp = v
+    else: # We have a string.
+        timestamp = parse(v)
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=tzutc())
+    # If we get here, we've successfully grabbed a datetime.
+    epoch = datetime.datetime(1970, 1, 1, tzinfo=tzutc())
+    time_since_epoch = (timestamp - epoch).total_seconds() # total_seconds() is in Py2.7 and later.
+    return int(time_since_epoch * NANOSECONDS_PER_SECOND)
 
 # pylint: disable=too-few-public-methods
 class VaultairePublisher(publisher.PublisherBase):
@@ -134,7 +135,7 @@ class VaultairePublisher(publisher.PublisherBase):
                 address = Marquise.hash_identifier(identifier)
 
                 # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
-                timestamp = sanitize(sample["timestamp"])
+                timestamp = sanitize_timestamp(sample["timestamp"])
 
                 # Our payload is the volume (later parsed to "counter_volume" in ceilometer)
                 payload = sanitize(sample["volume"])
