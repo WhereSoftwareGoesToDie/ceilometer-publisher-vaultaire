@@ -12,6 +12,7 @@ keys_to_delete = [
     "volume",
     "created_at",
     "updated_at",
+    "id",
 ]
 
 def process_sample(sample):
