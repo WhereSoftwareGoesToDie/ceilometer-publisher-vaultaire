@@ -3,6 +3,8 @@ import datetime
 from dateutil.parser import parse
 from dateutil.tz import tzutc
 
+from collections import OrderedDict as OD
+
 from marquise import Marquise
 
 import payload as p
@@ -163,7 +165,7 @@ def flatten(n, prefix=""):
     """Take a (potentially) nested dictionary and flatten it into a single
     level. Also remove any keys/values that Marquise/Vaultaire can't handle.
     """
-    flattened_dict = {}
+    flattened_dict = OD()
     for k,v in n.items():
         k = sanitize(k)
 
@@ -184,7 +186,7 @@ def flatten(n, prefix=""):
 
         # This was previously a check for __iter__, but strings have those now,
         # so let's just check for dict-ness instead. No good on lists anyway.
-        if type(v) is not dict:
+        if type(v) is not OD:
             v = sanitize(v)
             flattened_dict[k] = v
         else:
