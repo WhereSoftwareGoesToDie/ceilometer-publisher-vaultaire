@@ -1,3 +1,5 @@
 ceilometer
 marquise
 six
+pytest
+pytest-cov
