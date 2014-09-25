@@ -34,9 +34,12 @@ def _remove_extraneous(sourcedict):
 
 #Potentially destructive on sample
 def process_raw(sample):
+    cpu_number = sample["resource_metadata"].get("cpu_number", "")
+    event_type = sample["resource_metadata"].get("event_type", "")
     # Generate the unique identifer for the sample
     identifier = sample["resource_id"] + sample["project_id"] + \
-                 sample["name"] + sample["type"] + sample["unit"]
+                 sample["name"] + sample["type"] + sample["unit"] + \
+                 event_type + cpu_number
     address = Marquise.hash_identifier(identifier)
 
     # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
@@ -116,7 +119,7 @@ def process_consolidated(sample):
 
     ## Add specifics for CPU
     cpu_number = metadata.get("cpu_number", "")
-    if name == "cpu":
+    if cpu_number != "":
         sourcedict["cpu_number"] = cpu_number
 
     # Generate the unique identifer for the sample
