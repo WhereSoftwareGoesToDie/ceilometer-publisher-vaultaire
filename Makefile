@@ -6,6 +6,7 @@ clean:
 	find . -name '*.pyc' -delete
 	find . -name '*.pyo' -delete
 	find . -name '*.pyd' -delete
+	-rm -rf *.egg-info
 
 
 check: test

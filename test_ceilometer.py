@@ -1,12 +1,11 @@
-"""Fake up a ceilometer environment and throw some data points at Marquise, as
-though it came from ceilometer.
+"""We can't do much real ceilometer work, but we can test the functional
+bits of our code.
 """
 
+import sys
 import json
 import pprint
 from hashlib import sha1
-import sys
-sys.path.insert(0,'./ceilometer_publisher_vaultaire')
 import ceilometer_publisher_vaultaire
 
 class MarquiseFakeParsedUrl(object):

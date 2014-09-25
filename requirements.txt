@@ -1,4 +1,5 @@
 ceilometer
+cffi
 marquise
 six
 pytest
