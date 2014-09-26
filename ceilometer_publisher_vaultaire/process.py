@@ -28,11 +28,7 @@ def process_sample(sample):
 
 def _remove_extraneous(sourcedict):
     for k in keys_to_delete:
-        try:
-            del[sourcedict[k]]
-        except KeyError:
-            pass
-
+        sourcedict.pop(k, None)
 
 #Potentially destructive on sample
 def process_raw(sample):

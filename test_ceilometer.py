@@ -66,12 +66,49 @@ def test_ODrepr():
 def test_process_sample():
     raise RuntimeError("Test not yet written")
 
-
 def test__remove_extraneous():
-    raise RuntimeError("Test not yet written")
+    expected = """
+                {
+                    "name": "disk.read.requests",
+                    "project_id": "78e2fc2a70314713b9f814ec634b5e10",
+                    "resource_id": "cda0c65e-0fc6-4810-89d6-b5c78745f12d",
+                    "resource_metadata": {
+                        "display_name": "bar2",
+                        "flavor": {
+                            "disk": 0,
+                            "ephemeral": 0,
+                            "id": "42",
+                            "links": [
+                                {
+                                    "href": "http://192.168.42.114:8774/0632438bb4a748218b43ed9223b39f77/flavors/42",
+                                    "rel": "bookmark"
+                                }
+                            ],
+                            "name": "m1.nano",
+                            "ram": 64,
+                            "vcpus": 1
+                        },
+                        "host": "2a83dab20754db95ed7cf5a02ee0056d9d0f3d033215eb634403c533",
+                        "instance_type": "42",
+                        "memory_mb": 64,
+                        "name": "instance-00000002",
+                        "status": "active",
+                        "vcpus": 1
+                    },
+                    "type": "cumulative",
+                    "unit": "request",
+                    "user_id": "8288e6719e8c4b6a8b130ae77af7abbc"
+                }
+"""
+    parsed_json = json.JSONDecoder(object_pairs_hook=OD).decode(sample_json)
+    ceilometer_publisher_vaultaire.process._remove_extraneous(parsed_json)
+    trimmed_json = json.dumps(parsed_json)
+    expected_json = json.dumps(json.JSONDecoder(object_pairs_hook=OD).decode(expected))
+    assert trimmed_json == expected_json
 
 
 def test_process_raw():
+
     raise RuntimeError("Test not yet written")
 
 
@@ -107,9 +144,6 @@ def test_flatten():
 
 def test_sanitize_timestamp():
     raise RuntimeError("Test not yet written")
-
-
-
 
 if __name__ == '__main__':
     test_ODrepr()
