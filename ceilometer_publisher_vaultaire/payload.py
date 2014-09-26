@@ -47,14 +47,14 @@ def constructPayload(event_type, message, rawPayload):
 
     eventVerb = {"create":1, "update":2, "delete":3, "shutdown":4}.get(verb)
 
-    if eventSuccess is None:
+    if eventResolution is None:
         raise "Unsupported message given to eventToByte"
     if eventVerb is None:
         raise "Unsupported event class given to eventToByte"
-    if eventResolution is None:
+    if eventEndpoint is None:
         raise "Unsupported event endpoint given to eventToByte"
 
-    return eventResolution + eventVerb << 8 + eventEndPoint << 16 + rawPayload << 32
+    return eventResolution + eventVerb << 8 + eventEndpoint << 16 + rawPayload << 32
 
 def instanceToRawPayload(instanceType):
     if instanceType == "m1.tiny":
@@ -74,3 +74,6 @@ def instanceToRawPayload(instanceType):
 
 def ipAllocToRawPayload():
     return 1
+
+def volumeToRawPayload(volume):
+    return volume

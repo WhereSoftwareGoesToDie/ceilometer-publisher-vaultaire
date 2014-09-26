@@ -60,6 +60,7 @@ class VaultairePublisher(publisher.PublisherBase):
         if self.marquise:
             marq = self.marquise
             for sample in samples:
+                sample = sample.as_dict()
                 processed = pr.process_sample(sample)
                 for (address, sourcedict, timestamp, payload) in processed:
                     # Send it all off to marquise

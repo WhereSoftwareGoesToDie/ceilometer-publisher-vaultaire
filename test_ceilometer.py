@@ -56,6 +56,8 @@ sample_json = """
                 }
 """
 
+
+
 def test_ODrepr():
     """Force an OrderedDict through our customer __repr__ function to keep
     the coverage tests happy."""
@@ -64,7 +66,54 @@ def test_ODrepr():
 
 
 def test_process_sample():
-    raise RuntimeError("Test not yet written")
+
+    mini_json = """
+                {
+                    "project_id": "123",
+                    "resource_id": "456",
+                    "name": "instance",
+                    "type": "gauge",
+                    "unit": "instance",
+                    "volume": 0,
+                    "display_name": "bob",
+                    "timestamp": "1970-01-01 00:00:00",
+                    "resource_metadata": {
+                        "foo": "bar"
+                    }
+                }
+                """
+
+    event_json = """
+                {
+                    "project_id": "123",
+                    "resource_id": "456",
+                    "name": "instance",
+                    "type": "gauge",
+                    "unit": "instance",
+                    "volume": 0,
+                    "display_name": "bob",
+                    "timestamp": "1970-01-01 00:00:00",
+                    "resource_metadata": {
+                        "event_type": "instance.create.end",
+                        "instance_type": "m1.tiny",
+                        "message": "Success"
+                    }
+                }
+                """
+
+    parsed_mini_json = json.JSONDecoder(object_pairs_hook=OD).decode(mini_json)
+    parsed_event_json = json.JSONDecoder(object_pairs_hook=OD).decode(event_json)
+
+    mini_list = ceilometer_publisher_vaultaire.process.process_sample(parsed_mini_json)
+    event_list = ceilometer_publisher_vaultaire.process.process_sample(parsed_event_json)
+    #check that the for the non-event only raw was called
+    assert len(mini_list) == 1
+    #check the 
+    assert len(event_list) == 2
+    #Check the addresses the raw and consolidated versions produce are distinct
+    assert event_list[0][0] != event_list[1][0]
+    #Check the addresses the raw version produces are distinct across event/non-event
+    assert mini_list[0][0] != event_list[1][0]
 
 def test__remove_extraneous():
     expected = """
@@ -108,17 +157,98 @@ def test__remove_extraneous():
 
 
 def test_process_raw():
+    mini_json = """
+                {
+                    "project_id": "123",
+                    "resource_id": "456",
+                    "name": "instance",
+                    "type": "gauge",
+                    "unit": "instance",
+                    "volume": 23,
+                    "display_name": "bob",
+                    "timestamp": "1970-01-01 00:00:00",
+                    "resource_metadata": {
+                        "foo": "bar"
+                    },
+                    "a_different_subobject": {
+                        "fooz": "barz"
+                    }
+                }
+                """
 
-    raise RuntimeError("Test not yet written")
+    event_json = """
+                {
+                    "project_id": "123",
+                    "resource_id": "456",
+                    "name": "instance",
+                    "type": "gauge",
+                    "unit": "instance",
+                    "volume": 23,
+                    "display_name": "bob",
+                    "timestamp": "1970-01-01 00:00:00",
+                    "resource_metadata": {
+                        "event_type": "instance.create.end",
+                        "instance_type": "m1.tiny",
+                        "message": "Success"
+                    },
+                    "a_different_subobject": {
+                        "fooz": "barz"
+                    }
+                }
+                """
 
+    parsed_mini_json = json.JSONDecoder(object_pairs_hook=OD).decode(mini_json)
+    parsed_event_json = json.JSONDecoder(object_pairs_hook=OD).decode(event_json)
+
+    process_raw = ceilometer_publisher_vaultaire.process.process_raw
+
+    expectedMiniSd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "_unit": "instance", "display_name": "bob", "foo": "bar", "a_different_subobject-fooz": "barz"}
+    expectedEventSd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "_unit": "instance", "display_name": "bob", "event_type": "instance.create.end", "instance_type": "m1.tiny", "message": "Success", "a_different_subobject-fooz": "barz"}
+    (addr1, sd1, ts1, p1) = process_raw(parsed_mini_json)
+    (addr2, sd2, ts2, p2) = process_raw(parsed_event_json)
+    assert sd1 == expectedMiniSd
+    assert sd2 == expectedEventSd
+    assert sd1 != sd2
+    assert ts1 == 0
+    assert ts1 == ts2
+    assert p1 == 23
+    assert p1 == p2
+    assert addr1 != addr2
 
 def test_process_consolidated():
-    raise RuntimeError("Test not yet written")
+    event_json = """
+                {
+                    "project_id": "123",
+                    "resource_id": "456",
+                    "name": "instance",
+                    "type": "gauge",
+                    "unit": "instance",
+                    "volume": 0,
+                    "display_name": "bob",
+                    "timestamp": "1970-01-01 00:00:00",
+                    "resource_metadata": {
+                        "event_type": "instance.create.end",
+                        "instance_type": "m1.tiny",
+                        "message": "Success"
+                    }
+                }
+                """
+    parsed_event_json = json.JSONDecoder(object_pairs_hook=OD).decode(event_json)
+    (_, sd, ts, p) = ceilometer_publisher_vaultaire.process_consolidated(parsed_event_json)
+    expected_sd =  {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "counter_unit": "instance", "_event": 1, "display_name": "bob"}
+    assert sd == expected_sd
+    assert p == (1 << 8 + 2 << 16 + 1 << 32)
+    assert ts == 0
 
 
 def test_sanitize():
-    raise RuntimeError("Test not yet written")
-
+    sanitize = ceilometer_publisher_vaultaire.process.sanitize
+    assert sanitize(None)  == ""
+    assert sanitize(True)  == 1
+    assert sanitize(False) == 0
+    assert sanitize("maryhadalittlelamb") == "maryhadalittlelamb"
+    assert sanitize("\"numberOf****sGiven\":\"0\"") == "\"numberOf****sGiven\"-\"0\""
+    assert sanitize("[this,is,a,list]") == "[this-is-a-list]"
 
 def test_flatten():
     """Take a known-good input, flatten it, then compare the result with a
@@ -143,7 +273,12 @@ def test_flatten():
 
 
 def test_sanitize_timestamp():
-    raise RuntimeError("Test not yet written")
+    """pylint sucks donkey word"""
+    sanitize_timestamp = ceilometer_publisher_vaultaire.process.sanitize_timestamp
+    assert sanitize_timestamp("1970-01-01 00:00:00") == 0
+    assert sanitize_timestamp("1970-01-01T00:00:00Z") == 0
+    assert sanitize_timestamp("1970-01-01 00:00:00-0200") == 7200*10**9
+    assert sanitize_timestamp("1993-03-17T21:00:00+1000") == 732366000*10**9
 
 if __name__ == '__main__':
     test_ODrepr()

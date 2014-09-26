@@ -1,4 +1,4 @@
-from pprint import pformat
+from pprint import pformat, pprint
 import datetime
 from dateutil.parser import parse
 from dateutil.tz import tzutc
@@ -19,7 +19,6 @@ keys_to_delete = [
 ]
 
 def process_sample(sample):
-    sample = sample.as_dict()
     processed = []
     if ("event_type" in sample["resource_metadata"]):
         processed.append(process_consolidated(sample))
@@ -80,12 +79,19 @@ def process_raw(sample):
 
     _remove_extraneous(sourcedict)
 
+    print("pre-processing")
+    pprint(sourcedict)
+
     # Remove the original resource_metadata and substitute
     # our own flattened version
     sourcedict.update(flatten(sourcedict.pop("resource_metadata")))
-
-    for k, v in sourcedict.iteritems():
+    sourcedict = flatten(sourcedict)
+    print("post-flattening")
+    pprint(sourcedict)
+    for k, v in sourcedict.items():
         sourcedict[k] = sanitize(str(v))
+    print("post-sanitization")
+    pprint(sourcedict)
     return (address, sourcedict, timestamp, payload)
 
 def process_consolidated(sample):
