@@ -38,10 +38,19 @@ def _remove_extraneous(sourcedict):
 def process_raw(sample):
     cpu_number = sample["resource_metadata"].get("cpu_number", "")
     event_type = sample["resource_metadata"].get("event_type", "")
+
+    # If the flavor object is present, the flavor type is the "name" field of the flavor object
+    # Otherwise it is "instance_type"
+    flavor_type = ""
+    if "flavor" in sample:
+        flavor_type = sample["flavor"].get("name", "")
+    elif "instance_type" in sample:
+        flavor_type = sample["instance_type"]
+
     # Generate the unique identifer for the sample
     identifier = sample["resource_id"] + sample["project_id"] + \
                  sample["name"] + sample["type"] + sample["unit"] + \
-                 event_type + cpu_number
+                 event_type + cpu_number + flavor_type
     address = Marquise.hash_identifier(identifier)
 
     # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
@@ -126,21 +135,11 @@ def process_consolidated(sample):
 
     # Generate the unique identifer for the sample
 
-    ## Instance-specific
-
-    ## If the flavor object is present, the flavor type is the "name" field of the flavor object
-    ## Otherwise it is "instance_type"
-    flavor_type = ""
-    if "flavor" in sample:
-        flavor_type = sample["flavor"].get("name", "")
-    elif "instance_type" in sample:
-        flavor_type = sample["instance_type"]
-
     ## Common = r_id + p_id + counter_(name, type, unit)
     ## When present we also care about resource-specifics.
-    ## Currently flavor type and cpu_number
+    ## Currently only cpu_number
     identifier = resource_id + project_id + name + counter_type + counter_unit + \
-                 flavor_type + cpu_number + "_event"
+                 cpu_number + "_event"
     address = Marquise.hash_identifier(identifier)
 
     return (address, sourcedict, timestamp, payload)
