@@ -3,6 +3,8 @@ import datetime
 from dateutil.parser import parse
 from dateutil.tz import tzutc
 
+from collections import OrderedDict as OD
+
 from marquise import Marquise
 
 import payload as p
@@ -36,10 +38,19 @@ def _remove_extraneous(sourcedict):
 def process_raw(sample):
     cpu_number = sample["resource_metadata"].get("cpu_number", "")
     event_type = sample["resource_metadata"].get("event_type", "")
+
+    # If the flavor object is present, the flavor type is the "name" field of the flavor object
+    # Otherwise it is "instance_type"
+    flavor_type = ""
+    if "flavor" in sample:
+        flavor_type = sample["flavor"].get("name", "")
+    elif "instance_type" in sample:
+        flavor_type = sample["instance_type"]
+
     # Generate the unique identifer for the sample
     identifier = sample["resource_id"] + sample["project_id"] + \
                  sample["name"] + sample["type"] + sample["unit"] + \
-                 event_type + cpu_number
+                 event_type + cpu_number + flavor_type
     address = Marquise.hash_identifier(identifier)
 
     # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
@@ -124,21 +135,11 @@ def process_consolidated(sample):
 
     # Generate the unique identifer for the sample
 
-    ## Instance-specific
-
-    ## If the flavor object is present, the flavor type is the "name" field of the flavor object
-    ## Otherwise it is "instance_type"
-    flavor_type = ""
-    if "flavor" in sample:
-        flavor_type = sample["flavor"].get("name", "")
-    elif "instance_type" in sample:
-        flavor_type = sample["instance_type"]
-
     ## Common = r_id + p_id + counter_(name, type, unit)
     ## When present we also care about resource-specifics.
-    ## Currently flavor type and cpu_number
+    ## Currently only cpu_number
     identifier = resource_id + project_id + name + counter_type + counter_unit + \
-                 flavor_type + cpu_number + "_event"
+                 cpu_number + "_event"
     address = Marquise.hash_identifier(identifier)
 
     return (address, sourcedict, timestamp, payload)
@@ -163,7 +164,7 @@ def flatten(n, prefix=""):
     """Take a (potentially) nested dictionary and flatten it into a single
     level. Also remove any keys/values that Marquise/Vaultaire can't handle.
     """
-    flattened_dict = {}
+    flattened_dict = OD()
     for k,v in n.items():
         k = sanitize(k)
 
@@ -184,7 +185,7 @@ def flatten(n, prefix=""):
 
         # This was previously a check for __iter__, but strings have those now,
         # so let's just check for dict-ness instead. No good on lists anyway.
-        if type(v) is not dict:
+        if type(v) is not OD:
             v = sanitize(v)
             flattened_dict[k] = v
         else:
