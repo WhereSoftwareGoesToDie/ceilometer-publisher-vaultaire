@@ -1,4 +1,3 @@
-from pprint import pformat, pprint
 import datetime
 from dateutil.parser import parse
 from dateutil.tz import tzutc
@@ -79,19 +78,12 @@ def process_raw(sample):
 
     _remove_extraneous(sourcedict)
 
-    print("pre-processing")
-    pprint(sourcedict)
-
     # Remove the original resource_metadata and substitute
     # our own flattened version
     sourcedict.update(flatten(sourcedict.pop("resource_metadata")))
     sourcedict = flatten(sourcedict)
-    print("post-flattening")
-    pprint(sourcedict)
     for k, v in sourcedict.items():
         sourcedict[k] = sanitize(str(v))
-    print("post-sanitization")
-    pprint(sourcedict)
     return (address, sourcedict, timestamp, payload)
 
 def process_consolidated(sample):
