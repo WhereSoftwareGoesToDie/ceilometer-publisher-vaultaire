@@ -23,6 +23,10 @@ install:
   - sudo su -c "echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf"
   - sudo su -c "echo '/usr/include/glib-2.0' > /etc/ld.so.conf.d/glib.conf"
   - sudo ldconfig
+  - git clone https://github.com/anchor/pymarquise.git ../pymarquise/
+  - cd ../pymarquise/
+  - git checkout update-libmarquise
+  - make
   - cd -
   - sudo pip install -r requirements.txt
 
