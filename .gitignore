@@ -2,6 +2,10 @@
 __pycache__/
 *.py[cod]
 
+# Testing
+.coverage
+htmlcov/
+
 # Distribution / packaging
 .Python
 env/
