@@ -26,6 +26,7 @@ install:
   - git clone https://github.com/anchor/pymarquise.git ../pymarquise/
   - cd ../pymarquise/
   - git checkout update-libmarquise
+  - sudo pip install -r requirements.txt
   - make
   - cd -
   - sudo pip install -r requirements.txt
