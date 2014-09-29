@@ -47,7 +47,6 @@ def process_raw(sample):
         sample["name"],
         sample["unit"],
         event_type,
-        cpu_number,
         flavor_type,
     ]
     
@@ -138,13 +137,30 @@ def process_consolidated(sample):
     if cpu_number != "":
         sourcedict["cpu_number"] = cpu_number
 
-    # Generate the unique identifer for the sample
+    # If the flavor object is present, the flavor type is the "name" field of the flavor object
+    # Otherwise it is "instance_type"
+    flavor_type = None
+    if "flavor" in sample:
+        flavor_type = sample["flavor"].get("name", None)
+    elif "instance_type" in sample:
+        flavor_type = sample["instance_type"]
 
     ## Common = r_id + p_id + counter_(name, type, unit)
-    ## When present we also care about resource-specifics.
-    ## Currently only cpu_number
-    identifier = resource_id + project_id + name + counter_type + counter_unit + \
-                 cpu_number + "_event"
+    id_elements = [
+        resource_id,
+        project_id,
+        name,
+        counter_type,
+        counter_unit,
+        "_event",
+    ]
+
+    # Filter out Nones and stringify everything so we don't get TypeErrors on concatenation
+    id_elements = [ str(x) for x in id_elements if x is not None ]
+    
+    # Generate the unique identifer for the sample
+    identifier = "".join(id_elements)
+
     address = Marquise.hash_identifier(identifier)
 
     return (address, sourcedict, timestamp, payload)
