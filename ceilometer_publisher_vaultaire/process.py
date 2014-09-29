@@ -50,13 +50,10 @@ def process_raw(sample):
         cpu_number,
         flavor_type,
     ]
-
-    # Filter out Nones
-    id_elements = filter(lambda x: False if x is None else True, id_elements)
-
-    # Stringify everything so we don't get TypeErrors on concatenation
-    id_elements = map(str, id_elements)
-
+    
+    # Filter out Nones and stringify everything so we don't get TypeErrors on concatenation
+    id_elements = [ str(x) for x in id_elements if x is not None ]
+    
     # Generate the unique identifer for the sample
     identifier = "".join(id_elements)
     address = Marquise.hash_identifier(identifier)
