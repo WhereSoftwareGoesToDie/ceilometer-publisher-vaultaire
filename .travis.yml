@@ -29,7 +29,7 @@ install:
   - 'sed -r -i "s,/usr/lib64/glib-2.0/include,/usr/lib/x86_64-linux-gnu/glib-2.0/include," marquise/marquise_cffi.py'
   - sudo pip install -r requirements.txt
   - sudo python setup.py install
-  - cd -
+  - cd ../ceilometer-publisher-vaultaire/
   - sudo pip install -r requirements.txt
 
 script:
