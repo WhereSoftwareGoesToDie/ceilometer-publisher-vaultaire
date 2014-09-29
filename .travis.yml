@@ -27,9 +27,11 @@ install:
   - cd ../pymarquise/
   - git checkout update-libmarquise
   - sudo pip install -r requirements.txt
-  - make
+  - sudo python setup.py install
   - cd -
   - sudo pip install -r requirements.txt
 
 script:
   - python setup.py build build_ext -I/usr/include/glib-2.0
+  - make test
+  - make test-coverage-of-main-in-testsuite
