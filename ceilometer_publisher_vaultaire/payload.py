@@ -38,6 +38,8 @@ def constructPayload(event_type, message, rawPayload):
         eventResolution = 0
     elif message == "Failure":
         eventResolution = 1
+    elif message == "error":
+        eventResolution = 2
 
     if event_type.startswith("image"):
         _,verb = event_type.rsplit('.', 1)

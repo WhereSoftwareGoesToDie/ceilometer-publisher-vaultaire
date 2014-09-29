@@ -19,7 +19,7 @@ keys_to_delete = [
 
 def process_sample(sample):
     processed = []
-    if ("event_type" in sample["resource_metadata"]):
+    if "event_type" in sample["resource_metadata"]:
         processed.append(process_consolidated(sample))
     processed.append(process_raw(sample))
     return processed
@@ -30,7 +30,6 @@ def _remove_extraneous(sourcedict):
 
 #Potentially destructive on sample
 def process_raw(sample):
-    cpu_number = sample["resource_metadata"].get("cpu_number", None)
     event_type = sample["resource_metadata"].get("event_type", None)
 
     # If the flavor object is present, the flavor type is the "name" field of the flavor object
@@ -49,10 +48,10 @@ def process_raw(sample):
         event_type,
         flavor_type,
     ]
-    
+
     # Filter out Nones and stringify everything so we don't get TypeErrors on concatenation
     id_elements = [ str(x) for x in id_elements if x is not None ]
-    
+
     # Generate the unique identifer for the sample
     identifier = "".join(id_elements)
     address = Marquise.hash_identifier(identifier)
@@ -108,14 +107,26 @@ def process_consolidated(sample):
     counter_type = sample["type"]
     ## Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
     timestamp    = sanitize_timestamp(sample["timestamp"])
-    ## Our payload is the volume (later parsed to "counter_volume" in ceilometer)
-    payload      = sanitize(sample["volume"])
-    ## Modify the payload for instance events
-    if name.startswith("instance"):
-        payload = p.constructPayload(metadata["event_type"], metadata["message"], p.instanceToRawPayload(metadata["instance_type"]))
+
+    # If the flavor object is present, the flavor type is the "name" field of the flavor object
+    # Otherwise it is "instance_type"
+    flavor_type = None
+    if "flavor" in sample:
+        flavor_type = sample["flavor"].get("name", None)
+    elif "instance_type" in sample:
+        flavor_type = sample["instance_type"]
+
+    ## Special payload for instance events
+    if name == "instance":
+        payload = p.constructPayload(metadata["event_type"], metadata["message"], p.instanceToRawPayload(flavor_type))
+    elif name == "volume.size":
+        payload = p.constructPayload(metadata["event_type"], metadata["status"], p.instanceToRawPayload(sample["volume"]))
+    elif name == "ip.floating":
+        payload = p.constructPayload(metadata["event_type"], "", 1)
+    else:
+        payload  = sanitize(sample["volume"])
 
     # Build the source dict
-
     sourcedict = {}
     sourcedict["_event"]        = 1
     sourcedict["project_id"]    = project_id
@@ -132,19 +143,6 @@ def process_consolidated(sample):
     if counter_type == "cumulative":
         sourcedict["_counter"] = 1
 
-    ## Add specifics for CPU
-    cpu_number = metadata.get("cpu_number", "")
-    if cpu_number != "":
-        sourcedict["cpu_number"] = cpu_number
-
-    # If the flavor object is present, the flavor type is the "name" field of the flavor object
-    # Otherwise it is "instance_type"
-    flavor_type = None
-    if "flavor" in sample:
-        flavor_type = sample["flavor"].get("name", None)
-    elif "instance_type" in sample:
-        flavor_type = sample["instance_type"]
-
     ## Common = r_id + p_id + counter_(name, type, unit)
     id_elements = [
         resource_id,
@@ -157,11 +155,13 @@ def process_consolidated(sample):
 
     # Filter out Nones and stringify everything so we don't get TypeErrors on concatenation
     id_elements = [ str(x) for x in id_elements if x is not None ]
-    
+
     # Generate the unique identifer for the sample
     identifier = "".join(id_elements)
 
     address = Marquise.hash_identifier(identifier)
+
+
 
     return (address, sourcedict, timestamp, payload)
 
