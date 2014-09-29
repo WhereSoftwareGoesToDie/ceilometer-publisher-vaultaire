@@ -1,16 +1,19 @@
 language: python
 
 env:
-  - 'UBUNTU_RELEASE=trusty'
+  - 'UBUNTU_RELEASE=trusty CPATH=/usr/lib/x86_64-linux-gnu/glib-2.0/include:/usr/include/glib-2.0/:/usr/include'
 
 python:
   - 2.7
 
 install:
+  - deactivate
   - sudo pip install cffi six
   - sudo add-apt-repository -y "deb http://archive.ubuntu.com/ubuntu/ ${UBUNTU_RELEASE} main universe"
   - sudo apt-get update
   - sudo apt-get install python-ceilometer
+  - sudo apt-get install libglib2.0-dev
+  - sudo ldconfig
   - git clone https://github.com/anchor/libmarquise.git ../libmarquise/
   - cd ../libmarquise/
   - autoreconf -i
@@ -18,8 +21,18 @@ install:
   - make
   - sudo make install
   - sudo su -c "echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf"
+  - sudo su -c "echo '/usr/include/glib-2.0' > /etc/ld.so.conf.d/glib.conf"
   - sudo ldconfig
-  - cd -
+  - git clone https://github.com/anchor/pymarquise.git ../pymarquise/
+  - cd ../pymarquise/
+  - git checkout update-libmarquise
+  - 'sed -r -i "s,/usr/lib64/glib-2.0/include,/usr/lib/x86_64-linux-gnu/glib-2.0/include," marquise/marquise_cffi.py'
+  - sudo pip install -r requirements.txt
+  - sudo python setup.py install
+  - cd ../ceilometer-publisher-vaultaire/
+  - sudo pip install -r requirements.txt
 
 script:
-  - sudo python setup.py install
+  - python setup.py build build_ext -I/usr/include/glib-2.0
+  - make test
+  - make test-coverage-of-main-in-testsuite

@@ -1,3 +1,6 @@
 ceilometer
+cffi
 marquise
 six
+pytest
+pytest-cov

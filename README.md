@@ -17,6 +17,30 @@ You will need [Pymarquise] and [libmarquise] installed as dependencies.
 [libmarquise]: https://github.com/anchor/libmarquise
 
 
+Testing
+---
+
+The publisher requires that you have the ceilometer package installed, and
+testing is no exception. While we can't thoroughly test the actual ceilometer
+functionality, we need to import libraries all the same.
+
+The best way to do this seems to be installing it from source. Grab yourself a
+tarball from their distro folder[0] and unpack it, ceilometer-2014.2.b1 seems
+alright.
+
+Then pip install it, it'll pick up quite a number of dependencies.
+
+    pip install /tmp/ceilometer-2014.2.b1
+
+You'll also want to install the dependencies:
+
+    pip install -r requirements.txt
+
+Then run `make test` to do the rest.
+
+[0]: http://tarballs.openstack.org/ceilometer/
+
+
 Installation
 ---
 
