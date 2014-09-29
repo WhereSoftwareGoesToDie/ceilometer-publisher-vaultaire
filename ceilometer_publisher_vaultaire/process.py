@@ -30,21 +30,35 @@ def _remove_extraneous(sourcedict):
 
 #Potentially destructive on sample
 def process_raw(sample):
-    cpu_number = sample["resource_metadata"].get("cpu_number", "")
-    event_type = sample["resource_metadata"].get("event_type", "")
+    cpu_number = sample["resource_metadata"].get("cpu_number", None)
+    event_type = sample["resource_metadata"].get("event_type", None)
 
     # If the flavor object is present, the flavor type is the "name" field of the flavor object
     # Otherwise it is "instance_type"
-    flavor_type = ""
+    flavor_type = None
     if "flavor" in sample:
-        flavor_type = sample["flavor"].get("name", "")
+        flavor_type = sample["flavor"].get("name", None)
     elif "instance_type" in sample:
         flavor_type = sample["instance_type"]
 
+    id_elements = [
+        sample["resource_id"],
+        sample["project_id"],
+        sample["name"],
+        sample["unit"],
+        event_type,
+        cpu_number,
+        flavor_type,
+    ]
+
+    # Filter out Nones
+    id_elements = filter(lambda x: False if x is None else True, id_elements)
+
+    # Stringify everything so we don't get TypeErrors on concatenation
+    id_elements = map(str, id_elements)
+
     # Generate the unique identifer for the sample
-    identifier = sample["resource_id"] + sample["project_id"] + \
-                 sample["name"] + sample["type"] + sample["unit"] + \
-                 event_type + cpu_number + flavor_type
+    identifier = "".join(id_elements)
     address = Marquise.hash_identifier(identifier)
 
     # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
