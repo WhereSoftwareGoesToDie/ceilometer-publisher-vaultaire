@@ -13,10 +13,10 @@ check: test
 test:
 	py.test --cov=ceilometer_publisher_vaultaire test_ceilometer.py --cov-report=html
 
-# So we can verify that test_pymarquise.py satisfactorily covers 100% of the
-# pymarquise code, but how do we know that all of test_pymarquise.py is getting
-# run? With more tests! This target produces a coverage report about
-# test_pymarquise.py, dumping it in `htmlcov/`
+# So we can verify that test_ceilometer.py satisfactorily covers 100% of the
+# ceilometer publisher code, but how do we know that all of test_ceilometer.py
+# is getting run? With more tests! This target produces a coverage report about
+# test_ceilometer.py, dumping it in `htmlcov/`
 test-coverage-of-main-in-testsuite:
 	coverage run test_ceilometer.py ; coverage html test_ceilometer.py
 
