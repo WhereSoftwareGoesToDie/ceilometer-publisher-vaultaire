@@ -149,7 +149,8 @@ def process_consolidated(sample):
     for k, v in sourcedict.items():
         sourcedict[k] = sanitize(str(v))
 
-    ## Common = r_id + p_id + counter_(name, type, unit)
+    # Common elements to all messages are r_id + p_id + counter_(name,
+    # type, unit)
     id_elements = [
         resource_id,
         project_id,
@@ -159,14 +160,13 @@ def process_consolidated(sample):
         "_event",
     ]
 
-    # Filter out Nones and stringify everything so we don't get TypeErrors on concatenation
+    # Filter out Nones and stringify everything so we don't get
+    # TypeErrors on concatenation
     id_elements = [ str(x) for x in id_elements if x is not None ]
 
     # Generate the unique identifer for the sample
     identifier = "".join(id_elements)
-
     address = Marquise.hash_identifier(identifier)
-
     return (address, sourcedict, timestamp, payload)
 
 def sanitize(v):
