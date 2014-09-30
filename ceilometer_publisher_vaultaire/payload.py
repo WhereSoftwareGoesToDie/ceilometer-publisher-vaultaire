@@ -47,7 +47,7 @@ def constructPayload(event_type, message, rawPayload):
         _,verb,endpoint = event_type.rsplit('.', 2)
         eventEndpoint = {"start":1, "end":2}.get(endpoint)
 
-    eventVerb = {"create":1, "update":2, "delete":3, "shutdown":4}.get(verb)
+    eventVerb = {"create":1, "update":2, "delete":3, "shutdown":4, "exists":5}.get(verb)
 
     if eventResolution is None:
         raise "Unsupported message given to eventToByte"

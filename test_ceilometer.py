@@ -100,7 +100,7 @@ def test_process_sample():
     mini_list = ceilometer_publisher_vaultaire.process.process_sample(copy.copy(parsed_mini_json))
     event_list = ceilometer_publisher_vaultaire.process.process_sample(copy.copy(parsed_event_json))
     #check that the for the non-event only raw was called
-    assert len(mini_list) == 1
+    assert len(mini_list) == 2
     #check the 
     assert len(event_list) == 2
     #Check the addresses the raw and consolidated versions produce are distinct
@@ -164,11 +164,11 @@ def test_process_raw():
     assert p1 == p2
     assert addr1 != addr2
 
-def test_process_consolidated():
+def test_process_consolidated_event():
 
     parsed_event_json = json.loads(event_json)
-    (_, sd, ts, p) = ceilometer_publisher_vaultaire.process_consolidated(parsed_event_json)
-    expected_sd =  {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "counter_unit": "instance", "_event": "1", "display_name": "bob"}
+    (_, sd, ts, p) = ceilometer_publisher_vaultaire.process_consolidated_event(parsed_event_json)
+    expected_sd =  {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "counter_unit": "instance", "_consolidated": "1", "_event": "1", "display_name": "bob"}
     assert sd == expected_sd
     assert p == (1 << 8 + 2 << 16 + 1 << 32)
     assert ts == 0
@@ -218,7 +218,7 @@ if __name__ == '__main__':
     test_process_sample()
     test__remove_extraneous()
     test_process_raw()
-    test_process_consolidated()
+    test_process_consolidated_event()
     test_sanitize()
     test_flatten()
     test_sanitize_timestamp()

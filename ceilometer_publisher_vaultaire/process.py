@@ -19,7 +19,15 @@ def process_sample(sample):
     processed = []
     if "event_type" in sample["resource_metadata"]:
         try:
-            consolidated_sample = process_consolidated(sample)
+            consolidated_sample = process_consolidated_event(sample)
+        except Exception as e:
+            print e
+            consolidated_sample = None
+        if consolidated_sample is not None:
+            processed.append(consolidated_sample)
+    else:
+        try:
+            consolidated_sample = process_consolidated_pollster(sample)
         except Exception as e:
             print e
             consolidated_sample = None
@@ -99,7 +107,77 @@ def process_raw(sample):
         sourcedict[k] = sanitize(str(v))
     return (address, sourcedict, timestamp, payload)
 
-def process_consolidated(sample):
+def process_consolidated_pollster(sample):
+    # Pull out and clean fields which are always present
+    name         = sample["name"]
+    project_id   = sample["project_id"]
+    resource_id  = sample["resource_id"]
+    metadata     = sample["resource_metadata"]
+    ## Cast unit as a special metadata type
+    counter_unit = sample["unit"]
+    counter_type = sample["type"]
+    ## Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
+    timestamp    = sanitize_timestamp(sample["timestamp"])
+
+    # If the flavor object is present, the flavor type is the "name" field of the flavor object
+    # Otherwise it is "instance_type"
+    flavor_type = None
+    if "flavor" in sample:
+        flavor_type = sample["flavor"].get("name", None)
+    elif "instance_type" in sample:
+        flavor_type = sample["instance_type"]
+
+    ## Special payload for instance events
+    if name.startswith("instance"):
+        payload = p.instanceToRawPayload(flavor_type)
+    elif name.startswith("volume.size"):
+        payload = p.volumeToRawPayload(sanitize(sample["volume"]))
+    elif name.startwith("ip.floating"):
+        payload = 1
+    else:
+        payload = sanitize(sample["volume"])
+
+    # Build the source dict
+    sourcedict = {}
+    sourcedict["_consolidated"] = 1
+    sourcedict["project_id"]    = project_id
+    sourcedict["resource_id"]   = resource_id
+    sourcedict["counter_name"]  = name
+    sourcedict["counter_unit"]  = counter_unit
+    sourcedict["counter_type"]  = counter_type
+    sourcedict["display_name"]  = metadata.get("display_name", "")
+    ## Vaultaire cares about the datatype of the payload
+    if type(payload) == float:
+        sourcedict["_float"] = 1
+
+    ## If it's a cumulative value, we need to tell vaultaire
+    if counter_type == "cumulative":
+        sourcedict["_counter"] = 1
+
+    for k, v in sourcedict.items():
+        sourcedict[k] = sanitize(str(v))
+
+    # Common elements to all messages are r_id + p_id + counter_(name,
+    # type, unit)
+    id_elements = [
+        resource_id,
+        project_id,
+        name,
+        counter_type,
+        counter_unit,
+        "_consolidated",
+    ]
+
+    # Filter out Nones and stringify everything so we don't get
+    # TypeErrors on concatenation
+    id_elements = [ str(x) for x in id_elements if x is not None ]
+
+    # Generate the unique identifer for the sample
+    identifier = "".join(id_elements)
+    address = Marquise.hash_identifier(identifier)
+    return (address, sourcedict, timestamp, payload)
+
+def process_consolidated_event(sample):
     # Pull out and clean fields which are always present
     name         = sample["name"]
     project_id   = sample["project_id"]
@@ -123,7 +201,7 @@ def process_consolidated(sample):
     if name.startswith("instance"):
         payload = p.constructPayload(metadata["event_type"], metadata.get("message",""), p.instanceToRawPayload(flavor_type))
     elif name.startswith("volume.size"):
-        payload = p.constructPayload(metadata["event_type"], metadata.get("status",""), p.instanceToRawPayload(sample["volume"]))
+        payload = p.constructPayload(metadata["event_type"], metadata.get("status",""), p.volumeToRawPayload(sample["volume"]))
     elif name.startwith("ip.floating"):
         payload = p.constructPayload(metadata["event_type"], "", 1)
     else:
@@ -132,6 +210,7 @@ def process_consolidated(sample):
     # Build the source dict
     sourcedict = {}
     sourcedict["_event"]        = 1
+    sourcedict["_consolidated"] = 1
     sourcedict["project_id"]    = project_id
     sourcedict["resource_id"]   = resource_id
     sourcedict["counter_name"]  = name
@@ -158,6 +237,7 @@ def process_consolidated(sample):
         counter_type,
         counter_unit,
         "_event",
+        "_consolidated",
     ]
 
     # Filter out Nones and stringify everything so we don't get
