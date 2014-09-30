@@ -38,6 +38,8 @@ def constructPayload(event_type, message, rawPayload):
         eventResolution = 0
     elif message == "Failure":
         eventResolution = 1
+    elif message == "error":
+        eventResolution = 2
 
     if event_type.startswith("image"):
         _,verb = event_type.rsplit('.', 1)
@@ -45,7 +47,7 @@ def constructPayload(event_type, message, rawPayload):
         _,verb,endpoint = event_type.rsplit('.', 2)
         eventEndpoint = {"start":1, "end":2}.get(endpoint)
 
-    eventVerb = {"create":1, "update":2, "delete":3, "shutdown":4}.get(verb)
+    eventVerb = {"create":1, "update":2, "delete":3, "shutdown":4, "exists":5}.get(verb)
 
     if eventResolution is None:
         raise "Unsupported message given to eventToByte"

@@ -2,11 +2,9 @@ import datetime
 from dateutil.parser import parse
 from dateutil.tz import tzutc
 
-from collections import OrderedDict as OD
-
 from marquise import Marquise
 
-import payload as p
+import ceilometer_publisher_vaultaire.payload as p
 
 keys_to_delete = [
     "timestamp",
@@ -19,8 +17,22 @@ keys_to_delete = [
 
 def process_sample(sample):
     processed = []
-    if ("event_type" in sample["resource_metadata"]):
-        processed.append(process_consolidated(sample))
+    if "event_type" in sample["resource_metadata"]:
+        try:
+            consolidated_sample = process_consolidated_event(sample)
+        except Exception as e:
+            print e
+            consolidated_sample = None
+        if consolidated_sample is not None:
+            processed.append(consolidated_sample)
+    else:
+        try:
+            consolidated_sample = process_consolidated_pollster(sample)
+        except Exception as e:
+            print e
+            consolidated_sample = None
+        if consolidated_sample is not None:
+            processed.append(consolidated_sample)
     processed.append(process_raw(sample))
     return processed
 
@@ -30,7 +42,6 @@ def _remove_extraneous(sourcedict):
 
 #Potentially destructive on sample
 def process_raw(sample):
-    cpu_number = sample["resource_metadata"].get("cpu_number", None)
     event_type = sample["resource_metadata"].get("event_type", None)
 
     # If the flavor object is present, the flavor type is the "name" field of the flavor object
@@ -47,13 +58,12 @@ def process_raw(sample):
         sample["name"],
         sample["unit"],
         event_type,
-        cpu_number,
         flavor_type,
     ]
-    
+
     # Filter out Nones and stringify everything so we don't get TypeErrors on concatenation
     id_elements = [ str(x) for x in id_elements if x is not None ]
-    
+
     # Generate the unique identifer for the sample
     identifier = "".join(id_elements)
     address = Marquise.hash_identifier(identifier)
@@ -97,34 +107,45 @@ def process_raw(sample):
         sourcedict[k] = sanitize(str(v))
     return (address, sourcedict, timestamp, payload)
 
-def process_consolidated(sample):
+def process_consolidated_pollster(sample):
     # Pull out and clean fields which are always present
-
     name         = sample["name"]
     project_id   = sample["project_id"]
     resource_id  = sample["resource_id"]
     metadata     = sample["resource_metadata"]
     ## Cast unit as a special metadata type
-    counter_unit = sanitize(sample["unit"])
+    counter_unit = sample["unit"]
     counter_type = sample["type"]
     ## Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
     timestamp    = sanitize_timestamp(sample["timestamp"])
-    ## Our payload is the volume (later parsed to "counter_volume" in ceilometer)
-    payload      = sanitize(sample["volume"])
-    ## Modify the payload for instance events
+
+    # If the flavor object is present, the flavor type is the "name" field of the flavor object
+    # Otherwise it is "instance_type"
+    flavor_type = None
+    if "flavor" in sample:
+        flavor_type = sample["flavor"].get("name", None)
+    elif "instance_type" in sample:
+        flavor_type = sample["instance_type"]
+
+    ## Special payload for instance events
     if name.startswith("instance"):
-        payload = p.constructPayload(metadata["event_type"], metadata["message"], p.instanceToRawPayload(metadata["instance_type"]))
+        payload = p.instanceToRawPayload(flavor_type)
+    elif name.startswith("volume.size"):
+        payload = p.volumeToRawPayload(sanitize(sample["volume"]))
+    elif name.startwith("ip.floating"):
+        payload = 1
+    else:
+        payload = sanitize(sample["volume"])
 
     # Build the source dict
-
     sourcedict = {}
-    sourcedict["_event"]        = 1
+    sourcedict["_consolidated"] = 1
     sourcedict["project_id"]    = project_id
     sourcedict["resource_id"]   = resource_id
     sourcedict["counter_name"]  = name
     sourcedict["counter_unit"]  = counter_unit
     sourcedict["counter_type"]  = counter_type
-    sourcedict["display_name"]  = sample.get("display_name", "")
+    sourcedict["display_name"]  = metadata.get("display_name", "")
     ## Vaultaire cares about the datatype of the payload
     if type(payload) == float:
         sourcedict["_float"] = 1
@@ -133,20 +154,99 @@ def process_consolidated(sample):
     if counter_type == "cumulative":
         sourcedict["_counter"] = 1
 
-    ## Add specifics for CPU
-    cpu_number = metadata.get("cpu_number", "")
-    if cpu_number != "":
-        sourcedict["cpu_number"] = cpu_number
+    for k, v in sourcedict.items():
+        sourcedict[k] = sanitize(str(v))
+
+    # Common elements to all messages are r_id + p_id + counter_(name,
+    # type, unit)
+    id_elements = [
+        resource_id,
+        project_id,
+        name,
+        counter_type,
+        counter_unit,
+        "_consolidated",
+    ]
+
+    # Filter out Nones and stringify everything so we don't get
+    # TypeErrors on concatenation
+    id_elements = [ str(x) for x in id_elements if x is not None ]
 
     # Generate the unique identifer for the sample
-
-    ## Common = r_id + p_id + counter_(name, type, unit)
-    ## When present we also care about resource-specifics.
-    ## Currently only cpu_number
-    identifier = resource_id + project_id + name + counter_type + counter_unit + \
-                 cpu_number + "_event"
+    identifier = "".join(id_elements)
     address = Marquise.hash_identifier(identifier)
+    return (address, sourcedict, timestamp, payload)
 
+def process_consolidated_event(sample):
+    # Pull out and clean fields which are always present
+    name         = sample["name"]
+    project_id   = sample["project_id"]
+    resource_id  = sample["resource_id"]
+    metadata     = sample["resource_metadata"]
+    ## Cast unit as a special metadata type
+    counter_unit = sample["unit"]
+    counter_type = sample["type"]
+    ## Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
+    timestamp    = sanitize_timestamp(sample["timestamp"])
+
+    # If the flavor object is present, the flavor type is the "name" field of the flavor object
+    # Otherwise it is "instance_type"
+    flavor_type = None
+    if "flavor" in sample:
+        flavor_type = sample["flavor"].get("name", None)
+    elif "instance_type" in sample:
+        flavor_type = sample["instance_type"]
+
+    ## Special payload for instance events
+    if name.startswith("instance"):
+        payload = p.constructPayload(metadata["event_type"], metadata.get("message",""), p.instanceToRawPayload(flavor_type))
+    elif name.startswith("volume.size"):
+        payload = p.constructPayload(metadata["event_type"], metadata.get("status",""), p.volumeToRawPayload(sample["volume"]))
+    elif name.startwith("ip.floating"):
+        payload = p.constructPayload(metadata["event_type"], "", 1)
+    else:
+        payload = sanitize(sample["volume"])
+
+    # Build the source dict
+    sourcedict = {}
+    sourcedict["_event"]        = 1
+    sourcedict["_consolidated"] = 1
+    sourcedict["project_id"]    = project_id
+    sourcedict["resource_id"]   = resource_id
+    sourcedict["counter_name"]  = name
+    sourcedict["counter_unit"]  = counter_unit
+    sourcedict["counter_type"]  = counter_type
+    sourcedict["display_name"]  = metadata.get("display_name", "")
+    ## Vaultaire cares about the datatype of the payload
+    if type(payload) == float:
+        sourcedict["_float"] = 1
+
+    ## If it's a cumulative value, we need to tell vaultaire
+    if counter_type == "cumulative":
+        sourcedict["_counter"] = 1
+
+    for k, v in sourcedict.items():
+        sourcedict[k] = sanitize(str(v))
+
+    # Common elements to all messages are r_id + p_id + counter_(name,
+    # type, unit)
+    id_elements = [
+        resource_id,
+        project_id,
+        name,
+        counter_type,
+        counter_unit,
+        "_event",
+        "_consolidated",
+    ]
+
+    # Filter out Nones and stringify everything so we don't get
+    # TypeErrors on concatenation
+    id_elements = [ str(x) for x in id_elements if x is not None ]
+
+    # Generate the unique identifer for the sample
+    identifier = "".join(id_elements)
+    address = Marquise.hash_identifier(identifier)
     return (address, sourcedict, timestamp, payload)
 
 def sanitize(v):
@@ -156,8 +256,11 @@ def sanitize(v):
     """
     if v is None:
         return ""
-    if v in (True,False):
-        return 1 if v is True else 0
+    if type(v) is bool:
+        if v:
+            return 1
+        else:
+            return 0
     if type(v) is unicode:
         v = str(v)
     if type(v) is str: # XXX: will be incorrect/ambiguous in Python 3.
@@ -169,7 +272,7 @@ def flatten(n, prefix=""):
     """Take a (potentially) nested dictionary and flatten it into a single
     level. Also remove any keys/values that Marquise/Vaultaire can't handle.
     """
-    flattened_dict = OD()
+    flattened_dict = {}
     for k,v in n.items():
         k = sanitize(k)
 
@@ -185,12 +288,12 @@ def flatten(n, prefix=""):
             continue
 
         # If key has a parent, concatenate it into the new keyname.
-        if prefix:
+        if prefix != "":
             k = "{}-{}".format(prefix,k)
 
         # This was previously a check for __iter__, but strings have those now,
         # so let's just check for dict-ness instead. No good on lists anyway.
-        if type(v) is not OD:
+        if type(v) is not dict:
             v = sanitize(v)
             flattened_dict[k] = v
         else:
