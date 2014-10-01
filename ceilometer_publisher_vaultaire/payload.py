@@ -14,20 +14,21 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-
-# Start events are even, end are odd (LSB)
-# Other 7 bits for create, update, end, and any future additions
-
-# eventResolution is passed in message, if none is given assumed to be Success
-# eventResolution takes up the LSByte
-# eventVerb is the action of the event, e.g. create, delete, shutdown, etc.
-# eventVerb takes up the 2nd LSByte
-# eventEndpoint defines whether the data represents an event start, end or an
-# instance event.
-# eventVerb takes up the 3rd LSByte
-# rawPayload takes up the 4 MSBytes (32 bits)
-# rawPayload is specific on counter
 def constructPayload(event_type, message, rawPayload):
+    """
+    eventResolution is passed in message, if none is given assumed to be Success
+    eventResolution takes up the LSByte
+    eventVerb is the action of the event, e.g. create, delete, shutdown, etc.
+    eventVerb takes up the 2nd LSByte
+    eventEndpoint defines whether the data represents an event start, end or an
+    instance event.
+    eventVerb takes up the 3rd LSByte
+    rawPayload takes up the 4 MSBytes (32 bits)
+    rawPayload is specific on counter
+    Start events are even, end are odd (LSB)
+    Other 7 bits for create, update, end, and any future additions
+    """
+
     #If no event endpoint is included, assume instantaneous event (e.g. image deletion)
     eventEndpoint = 0
 
@@ -50,11 +51,11 @@ def constructPayload(event_type, message, rawPayload):
     eventVerb = {"create":1, "update":2, "delete":3, "shutdown":4, "exists":5}.get(verb)
 
     if eventResolution is None:
-        raise "Unsupported message given to eventToByte"
+        raise Exception("Unsupported message given to eventToByte")
     if eventVerb is None:
-        raise "Unsupported event class given to eventToByte"
+        raise Exception("Unsupported event class given to eventToByte")
     if eventEndpoint is None:
-        raise "Unsupported event endpoint given to eventToByte"
+        raise Exception("Unsupported event endpoint given to eventToByte")
 
     return eventResolution + eventVerb << 8 + eventEndpoint << 16 + rawPayload << 32
 
@@ -71,7 +72,7 @@ def instanceToRawPayload(instanceType):
         ret = 5
     else:
         ret = 0
-#        raise "unsupported instance type given to instanceToPayload"
+        raise Exception("Unsupported instance type given to instanceToPayload")
     return ret
 
 def ipAllocToRawPayload():

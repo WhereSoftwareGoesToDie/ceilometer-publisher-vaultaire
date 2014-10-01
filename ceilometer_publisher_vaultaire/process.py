@@ -132,7 +132,7 @@ def process_consolidated_pollster(sample):
         payload = p.instanceToRawPayload(flavor_type)
     elif name.startswith("volume.size"):
         payload = p.volumeToRawPayload(sanitize(sample["volume"]))
-    elif name.startwith("ip.floating"):
+    elif name.startswith("ip.floating"):
         payload = 1
     else:
         payload = sanitize(sample["volume"])
@@ -202,7 +202,7 @@ def process_consolidated_event(sample):
         payload = p.constructPayload(metadata["event_type"], metadata.get("message",""), p.instanceToRawPayload(flavor_type))
     elif name.startswith("volume.size"):
         payload = p.constructPayload(metadata["event_type"], metadata.get("status",""), p.volumeToRawPayload(sample["volume"]))
-    elif name.startwith("ip.floating"):
+    elif name.startswith("ip.floating"):
         payload = p.constructPayload(metadata["event_type"], "", 1)
     else:
         payload = sanitize(sample["volume"])
