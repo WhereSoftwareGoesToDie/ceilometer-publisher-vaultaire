@@ -67,7 +67,7 @@ event_json = """
                     "volume": 23,
                     "timestamp": "1970-01-01 00:00:00",
                     "resource_metadata": {
-                    "display_name": "bob",
+                        "display_name": "bob",
                         "event_type": "instance.create.end",
                         "message": "Success"
                     },
@@ -81,14 +81,14 @@ mini_json = """
                 {
                     "project_id": "123",
                     "resource_id": "456",
-                    "name": "instance",
+                    "name": "image",
                     "type": "gauge",
-                    "unit": "instance",
-                    "volume": 23,
-                    "display_name": "bob",
+                    "unit": "image",
+                    "volume": 1,
                     "timestamp": "1970-01-01 00:00:00",
                     "resource_metadata": {
-                        "foo": "bar"
+                        "foo": "bar",
+                        "display_name": "bob"
                     }
                 }
                 """
@@ -151,7 +151,7 @@ def test__remove_extraneous():
 def test_process_raw():
     process_raw = ceilometer_publisher_vaultaire.process.process_raw
 
-    expectedMiniSd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "_unit": "instance", "display_name": "bob", "foo": "bar"}
+    expectedMiniSd = {"project_id": "123", "resource_id": "456", "counter_name": "image", "counter_type": "gauge", "_unit": "image", "display_name": "bob", "foo": "bar"}
     expectedEventSd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "_unit": "instance", "display_name": "bob", "event_type": "instance.create.end", "flavor-name": "m1.tiny", "message": "Success"}
     (addr1, sd1, ts1, p1) = process_raw(copy.copy(parsed_mini_json))
     (addr2, sd2, ts2, p2) = process_raw(copy.copy(parsed_event_json))
@@ -160,8 +160,8 @@ def test_process_raw():
     assert sd1 != sd2
     assert ts1 == 0
     assert ts1 == ts2
-    assert p1 == 23
-    assert p1 == p2
+    assert p1 == 1
+    assert p2 == 23
     assert addr1 != addr2
 
 def test_process_consolidated_event():
