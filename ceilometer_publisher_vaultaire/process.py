@@ -4,9 +4,9 @@ from dateutil.tz import tzutc
 
 from marquise import Marquise
 
-import ceilometer_publisher_vaultaire.payload as p
+import ceilometer_publisher_vaultaire.consolidated as consolidated
 
-keys_to_delete = [
+KEYS_TO_DELETE = [
     "timestamp",
     "volume",
     "created_at",
@@ -15,42 +15,39 @@ keys_to_delete = [
     "size",
 ]
 
+# FIXME: refactor the functions in this module in such a way that they
+# can log.
+
 def process_sample(sample):
     processed = []
-    if "event_type" in sample["resource_metadata"]:
-        try:
+    consolidated_sample = None
+    try:
+        if "event_type" in sample["resource_metadata"]:
             consolidated_sample = process_consolidated_event(sample)
-        except Exception as e:
-            print e
-            consolidated_sample = None
-        if consolidated_sample is not None:
-            processed.append(consolidated_sample)
-    else:
-        try:
+        else:
             consolidated_sample = process_consolidated_pollster(sample)
-        except Exception as e:
-            print e
-            consolidated_sample = None
-        if consolidated_sample is not None:
-            processed.append(consolidated_sample)
+    except Exception:
+        # log here
+        pass
+    if consolidated_sample is not None:
+        processed.append(consolidated_sample)
     processed.append(process_raw(sample))
     return processed
 
-def _remove_extraneous(sourcedict):
-    for k in keys_to_delete:
+def remove_extraneous(sourcedict):
+    for k in KEYS_TO_DELETE:
         sourcedict.pop(k, None)
 
-#Potentially destructive on sample
 def process_raw(sample):
+    """
+    Process a sample into a raw (not consolidated) datapoint. Makes
+    destructive updates to sample.
+    """
     event_type = sample["resource_metadata"].get("event_type", None)
 
     # If the flavor object is present, the flavor type is the "name" field of the flavor object
     # Otherwise it is "instance_type"
-    flavor_type = None
-    if "flavor" in sample:
-        flavor_type = sample["flavor"].get("name", None)
-    elif "instance_type" in sample:
-        flavor_type = sample["instance_type"]
+    flavor_type = get_flavor_type(sample)
 
     id_elements = [
         sample["resource_id"],
@@ -83,7 +80,7 @@ def process_raw(sample):
         sourcedict["_float"] = 1
 
     # Cast unit as a special metadata type
-    sourcedict["_unit"] = sanitize(sourcedict.pop("unit"))
+    sourcedict["_unit"] = sanitize(sourcedict.pop("unit", None))
 
     # If it's a cumulative value, we need to tell vaultaire
     if sourcedict["type"] == "cumulative":
@@ -97,7 +94,7 @@ def process_raw(sample):
     sourcedict["counter_name"] = sanitize(sourcedict.pop("name"))
     sourcedict["counter_type"] = sanitize(sourcedict.pop("type"))
 
-    _remove_extraneous(sourcedict)
+    remove_extraneous(sourcedict)
 
     # Remove the original resource_metadata and substitute
     # our own flattened version
@@ -121,19 +118,15 @@ def process_consolidated_pollster(sample):
 
     # If the flavor object is present, the flavor type is the "name" field of the flavor object
     # Otherwise it is "instance_type"
-    flavor_type = None
-    if "flavor" in sample:
-        flavor_type = sample["flavor"].get("name", None)
-    elif "instance_type" in sample:
-        flavor_type = sample["instance_type"]
+    flavor_type = get_flavor_type(sample)
 
-    ## Special payload for instance events
+    # Special payload for instance events
     if name.startswith("instance"):
-        payload = p.instanceToRawPayload(flavor_type)
+        payload = consolidated.instanceToRawPayload(flavor_type)
     elif name.startswith("volume.size"):
-        payload = p.volumeToRawPayload(sanitize(sample["volume"]))
+        payload = consolidated.volumeToRawPayload(sanitize(sample["volume"]))
     elif name.startswith("ip.floating"):
-        payload = 1
+        payload = consolidated.RAW_PAYLOAD_IP_ALLOC
     else:
         payload = sanitize(sample["volume"])
 
@@ -146,11 +139,13 @@ def process_consolidated_pollster(sample):
     sourcedict["counter_unit"]  = counter_unit
     sourcedict["counter_type"]  = counter_type
     sourcedict["display_name"]  = metadata.get("display_name", "")
-    ## Vaultaire cares about the datatype of the payload
+    # Vaultaire does not care about the datatype of the payload, so we
+    # need to specify it in metadata.
     if type(payload) == float:
         sourcedict["_float"] = 1
 
-    ## If it's a cumulative value, we need to tell vaultaire
+    # If it's a cumulative value, this needs to go in the metadata as
+    # well.
     if counter_type == "cumulative":
         sourcedict["_counter"] = 1
 
@@ -191,19 +186,15 @@ def process_consolidated_event(sample):
 
     # If the flavor object is present, the flavor type is the "name" field of the flavor object
     # Otherwise it is "instance_type"
-    flavor_type = None
-    if "flavor" in sample:
-        flavor_type = sample["flavor"].get("name", None)
-    elif "instance_type" in sample:
-        flavor_type = sample["instance_type"]
+    flavor_type = get_flavor_type(sample)
 
     ## Special payload for instance events
     if name.startswith("instance"):
-        payload = p.constructPayload(metadata["event_type"], metadata.get("message",""), p.instanceToRawPayload(flavor_type))
+        payload = consolidated.constructPayload(metadata["event_type"], metadata.get("message",""), consolidated.instanceToRawPayload(flavor_type))
     elif name.startswith("volume.size"):
-        payload = p.constructPayload(metadata["event_type"], metadata.get("status",""), p.volumeToRawPayload(sample["volume"]))
+        payload = consolidated.constructPayload(metadata["event_type"], metadata.get("status",""), consolidated.volumeToRawPayload(sample["volume"]))
     elif name.startswith("ip.floating"):
-        payload = p.constructPayload(metadata["event_type"], "", 1)
+        payload = consolidated.constructPayload(metadata["event_type"], "", 1)
     else:
         payload = sanitize(sample["volume"])
 
@@ -319,6 +310,15 @@ def sanitize_timestamp(v):
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=tzutc())
     # If we get here, we've successfully grabbed a datetime.
+    # FIXME: use strftime
     epoch = datetime.datetime(1970, 1, 1, tzinfo=tzutc())
     time_since_epoch = (timestamp - epoch).total_seconds() # total_seconds() is in Py2.7 and later.
     return int(time_since_epoch * NANOSECONDS_PER_SECOND)
+
+def get_flavor_type(sample):
+    flavor_type = None
+    if "flavor" in sample:
+        flavor_type = sample["flavor"].get("name", None)
+    elif "instance_type" in sample:
+        flavor_type = sample["instance_type"]
+    return flavor_type
