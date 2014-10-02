@@ -5,6 +5,7 @@ from dateutil.tz import tzutc
 from marquise import Marquise
 
 import ceilometer_publisher_vaultaire.payload as p
+import ceilometer_publisher_vaultaire.siphash
 
 keys_to_delete = [
     "timestamp",
@@ -119,17 +120,9 @@ def process_consolidated_pollster(sample):
     ## Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
     timestamp    = sanitize_timestamp(sample["timestamp"])
 
-    # If the flavor object is present, the flavor type is the "name" field of the flavor object
-    # Otherwise it is "instance_type"
-    flavor_type = None
-    if "flavor" in sample:
-        flavor_type = sample["flavor"].get("name", None)
-    elif "instance_type" in sample:
-        flavor_type = sample["instance_type"]
-
-    ## Special payload for instance events
+    # We use a siphash of the instance_type for instance pollsters
     if name.startswith("instance"):
-        payload = p.instanceToRawPayload(flavor_type)
+        payload = siphash(sample["instance_type"])
     elif name.startswith("volume.size"):
         payload = p.volumeToRawPayload(sanitize(sample["volume"]))
     elif name.startswith("ip.floating"):
@@ -189,17 +182,9 @@ def process_consolidated_event(sample):
     ## Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
     timestamp    = sanitize_timestamp(sample["timestamp"])
 
-    # If the flavor object is present, the flavor type is the "name" field of the flavor object
-    # Otherwise it is "instance_type"
-    flavor_type = None
-    if "flavor" in sample:
-        flavor_type = sample["flavor"].get("name", None)
-    elif "instance_type" in sample:
-        flavor_type = sample["instance_type"]
-
-    ## Special payload for instance events
+    # We use the instance_type_id for instance events
     if name.startswith("instance"):
-        payload = p.constructPayload(metadata["event_type"], metadata.get("message",""), p.instanceToRawPayload(flavor_type))
+        payload = p.constructPayload(metadata["event_type"], metadata.get("message",""), sample["instance_type_id"])
     elif name.startswith("volume.size"):
         payload = p.constructPayload(metadata["event_type"], metadata.get("status",""), p.volumeToRawPayload(sample["volume"]))
     elif name.startswith("ip.floating"):
@@ -322,3 +307,6 @@ def sanitize_timestamp(v):
     epoch = datetime.datetime(1970, 1, 1, tzinfo=tzutc())
     time_since_epoch = (timestamp - epoch).total_seconds() # total_seconds() is in Py2.7 and later.
     return int(time_since_epoch * NANOSECONDS_PER_SECOND)
+
+def siphash(the_thing):
+    return ceilometer_publisher_vaultaire.siphash.SipHash24("0000000000000000", the_thing).hash()

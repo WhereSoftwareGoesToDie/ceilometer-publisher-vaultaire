@@ -9,6 +9,7 @@ from hashlib import sha1
 from collections import OrderedDict as OD
 import ceilometer_publisher_vaultaire
 import copy as copy
+import ceilometer_publisher_vaultaire.siphash as siphash
 
 PP = pprint.pprint
 PF = pprint.pformat
@@ -66,6 +67,7 @@ event_json = """
                     "unit": "instance",
                     "volume": 23,
                     "timestamp": "1970-01-01 00:00:00",
+                    "instance_type_id": 14,
                     "resource_metadata": {
                         "display_name": "bob",
                         "event_type": "instance.create.end",
@@ -81,10 +83,11 @@ mini_json = """
                 {
                     "project_id": "123",
                     "resource_id": "456",
-                    "name": "image",
+                    "name": "instance",
                     "type": "gauge",
-                    "unit": "image",
+                    "unit": "instance",
                     "volume": 1,
+                    "instance_type": "13",
                     "timestamp": "1970-01-01 00:00:00",
                     "resource_metadata": {
                         "foo": "bar",
@@ -151,8 +154,8 @@ def test__remove_extraneous():
 def test_process_raw():
     process_raw = ceilometer_publisher_vaultaire.process.process_raw
 
-    expectedMiniSd = {"project_id": "123", "resource_id": "456", "counter_name": "image", "counter_type": "gauge", "_unit": "image", "display_name": "bob", "foo": "bar"}
-    expectedEventSd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "_unit": "instance", "display_name": "bob", "event_type": "instance.create.end", "flavor-name": "m1.tiny", "message": "Success"}
+    expectedMiniSd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "_unit": "instance", "display_name": "bob", "foo": "bar", "instance_type": "13"}
+    expectedEventSd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "_unit": "instance", "display_name": "bob", "event_type": "instance.create.end", "flavor-name": "m1.tiny", "message": "Success", "instance_type_id": "14"}
     (addr1, sd1, ts1, p1) = process_raw(copy.copy(parsed_mini_json))
     (addr2, sd2, ts2, p2) = process_raw(copy.copy(parsed_event_json))
     assert sd1 == expectedMiniSd
@@ -164,15 +167,23 @@ def test_process_raw():
     assert p2 == 23
     assert addr1 != addr2
 
+def test_process_consolidated_pollster():
+
+    parsed_mini_json = json.loads(mini_json)
+    (_, sd, ts, p) = ceilometer_publisher_vaultaire.process_consolidated_pollster(parsed_mini_json)
+    expected_sd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1"}
+    assert sd == expected_sd
+    assert p == siphash.SipHash24("0000000000000000", "13").hash()
+    assert ts == 0
+
 def test_process_consolidated_event():
 
     parsed_event_json = json.loads(event_json)
     (_, sd, ts, p) = ceilometer_publisher_vaultaire.process_consolidated_event(parsed_event_json)
     expected_sd =  {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "counter_unit": "instance", "_consolidated": "1", "_event": "1", "display_name": "bob"}
     assert sd == expected_sd
-    assert p == (1 << 8 + 2 << 16 + 1 << 32)
+    assert p == (1 << 8 + 2 << 16 + 14 << 32)
     assert ts == 0
-
 
 def test_sanitize():
     sanitize = ceilometer_publisher_vaultaire.process.sanitize
@@ -218,6 +229,7 @@ if __name__ == '__main__':
     test_process_sample()
     test__remove_extraneous()
     test_process_raw()
+    test_process_consolidated_pollster()
     test_process_consolidated_event()
     test_sanitize()
     test_flatten()
