@@ -14,6 +14,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+RAW_PAYLOAD_IP_ALLOC = 1
+
 def constructPayload(event_type, message, rawPayload):
     """
     eventResolution is passed in message, if none is given assumed to be Success
@@ -29,12 +31,12 @@ def constructPayload(event_type, message, rawPayload):
     Other 7 bits for create, update, end, and any future additions
     """
 
-    #If no event endpoint is included, assume instantaneous event (e.g. image deletion)
+    # If no event endpoint is included, assume instantaneous event (e.g. image deletion)
     eventEndpoint = 0
 
     if message == "Success":
         eventResolution = 0
-    #Empty message implies success
+    # Empty message implies success
     elif message == "":
         eventResolution = 0
     elif message == "Failure":
@@ -44,6 +46,7 @@ def constructPayload(event_type, message, rawPayload):
 
     if event_type.startswith("image"):
         _,verb = event_type.rsplit('.', 1)
+    # FIXME: make sure this doesn't break
     else:
         _,verb,endpoint = event_type.rsplit('.', 2)
         eventEndpoint = {"start":1, "end":2}.get(endpoint)
@@ -59,6 +62,8 @@ def constructPayload(event_type, message, rawPayload):
 
     return eventResolution + eventVerb << 8 + eventEndpoint << 16 + rawPayload << 32
 
+# FIXME: don't hardcode instance sizes, stick them in a config file
+# somewhere, or just use the type ID.
 def instanceToRawPayload(instanceType):
     if instanceType == "m1.tiny":
         ret = 1
@@ -74,9 +79,6 @@ def instanceToRawPayload(instanceType):
         ret = 0
         raise Exception("Unsupported instance type given to instanceToPayload")
     return ret
-
-def ipAllocToRawPayload():
-    return 1
 
 def volumeToRawPayload(volume):
     return volume

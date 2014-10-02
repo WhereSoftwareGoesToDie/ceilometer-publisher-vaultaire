@@ -104,14 +104,14 @@ def test_process_sample():
     event_list = ceilometer_publisher_vaultaire.process.process_sample(copy.copy(parsed_event_json))
     #check that the for the non-event only raw was called
     assert len(mini_list) == 2
-    #check the 
+    #check the
     assert len(event_list) == 2
     #Check the addresses the raw and consolidated versions produce are distinct
     assert event_list[0][0] != event_list[1][0]
     #Check the addresses the raw version produces are distinct across event/non-event
     assert mini_list[0][0] != event_list[1][0]
 
-def test__remove_extraneous():
+def test_remove_extraneous():
     expected = """
                 {
                     "name": "disk.read.requests",
@@ -146,7 +146,7 @@ def test__remove_extraneous():
                 }
 """
     local_json = copy.copy(parsed_json)
-    ceilometer_publisher_vaultaire.process._remove_extraneous(local_json)
+    ceilometer_publisher_vaultaire.process.remove_extraneous(local_json)
     expected_json = json.loads(expected)
     assert local_json == expected_json
 
@@ -224,10 +224,9 @@ def test_sanitize_timestamp():
     assert sanitize_timestamp("1993-03-17T21:00:00+1000") == 732366000*10**9
 
 if __name__ == '__main__':
-
     # process.py
     test_process_sample()
-    test__remove_extraneous()
+    test_remove_extraneous()
     test_process_raw()
     test_process_consolidated_pollster()
     test_process_consolidated_event()

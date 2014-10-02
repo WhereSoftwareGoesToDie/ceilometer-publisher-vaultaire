@@ -28,40 +28,39 @@ from dateutil.tz import tzutc
 from ceilometer.openstack.common.gettextutils import _
 from ceilometer.openstack.common import log
 
-import payload as p
-import process as pr
+import process
 
 LOG = log.getLogger(__name__)
 
 # pylint: disable=too-few-public-methods
 class VaultairePublisher(publisher.PublisherBase):
-    # We will delete keys which are likely to change frequently, or that
-    # are otherwise undesirable.
-
     """Implements the Publisher interface for Ceilometer."""
     def __init__(self, parsed_url):
         super(VaultairePublisher, self).__init__(parsed_url)
 
         self.marquise = None
         namespace = parsed_url.netloc
+        # FIXME: validate namespace
         if not namespace:
             LOG.error(_('The namespace for the vaultaire publisher is required'))
             return
 
-        LOG.info(_("Marquise loaded with namespace %s" % namespace))
         self.marquise = Marquise(namespace)
+        LOG.info(_("Marquise loaded with namespace %s" % namespace))
 
     def publish_samples(self, dummy_context, samples):
-        """Reconstruct a metering message for publishing to Vaultaire via Marquise
+        """
+        Reconstruct a metering message for publishing to Vaultaire via Marquise
 
-        :param dummy_context: Execution context from the service or RPC call. (Unused)
-        :param samples: Samples from pipeline after transformation
+        :param dummy_context: Execution context from the service or RPC
+        call (unused).
+        :param samples: Samples from pipeline after transformation.
         """
         if self.marquise:
             marq = self.marquise
             for sample in samples:
                 sample = sample.as_dict()
-                processed = pr.process_sample(sample)
+                processed = process.process_sample(sample)
                 for (address, sourcedict, timestamp, payload) in processed:
                     # Send it all off to marquise
                     LOG.info(_("Marquise Send Simple: %s %s %s") % (address, timestamp, payload))
@@ -70,3 +69,6 @@ class VaultairePublisher(publisher.PublisherBase):
 
                     LOG.debug(_("Marquise Update Source Dict for %s - %s") % (address, pformat(sourcedict)))
                     marq.update_source(address, sourcedict)
+        else:
+            LOG.error(_("Skipping publisher as we don't have a valid" +
+                            "marquise context."))
