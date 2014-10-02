@@ -60,14 +60,7 @@ def constructPayload(event_type, message, rawPayload):
     if eventEndpoint is None:
         raise Exception("Unsupported event endpoint given to eventToByte")
 
-    print "lalalala"
-    print eventResolution
-    print eventVerb
-    print eventEndpoint
-    print rawPayload
-    x = eventResolution + (eventVerb << 8) + (eventEndpoint << 16) + (rawPayload << 32)
-    print x
-    return x
+    return eventResolution + (eventVerb << 8) + (eventEndpoint << 16) + (rawPayload << 32)
 
 # FIXME: don't hardcode instance sizes, stick them in a config file
 # somewhere, or just use the type ID.
