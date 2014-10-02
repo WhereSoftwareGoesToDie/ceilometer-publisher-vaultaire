@@ -4,7 +4,7 @@ from dateutil.tz import tzutc
 
 from marquise import Marquise
 
-import ceilometer_publisher_vaultaire.siphash
+import siphash
 import ceilometer_publisher_vaultaire.consolidated as consolidated
 
 KEYS_TO_DELETE = [
@@ -309,7 +309,7 @@ def sanitize_timestamp(v):
     return int(time_since_epoch * NANOSECONDS_PER_SECOND)
 
 def canonical_siphash(the_thing):
-    return ceilometer_publisher_vaultaire.siphash.SipHash24("0000000000000000", the_thing).hash()
+    return siphash.SipHash24("0000000000000000", the_thing).hash()
 
 def get_flavor_type(sample):
     flavor_type = None
