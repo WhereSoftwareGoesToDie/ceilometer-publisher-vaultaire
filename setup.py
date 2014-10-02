@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="ceilometer-publisher-vaultaire",
-    version="0.0.14",
+    version="0.0.15",
     description="A publisher plugin for Ceilometer that outputs to Vaultaire",
     author="Barney Desmond",
     author_email="engineering@anchor.net.au",
