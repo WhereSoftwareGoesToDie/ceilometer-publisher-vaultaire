@@ -46,8 +46,6 @@ def process_raw(sample):
     """
     event_type = sample["resource_metadata"].get("event_type", None)
 
-    # If the flavor object is present, the flavor type is the "name" field of the flavor object
-    # Otherwise it is "instance_type"
     flavor_type = get_flavor_type(sample)
 
     id_elements = [
@@ -119,7 +117,7 @@ def process_consolidated_pollster(sample):
 
     # We use a siphash of the instance_type for instance pollsters
     if name.startswith("instance"):
-        payload = canonical_siphash(sample["instance_type"])
+        payload = canonical_siphash(metadata["instance_type"])
     elif name.startswith("volume.size"):
         payload = consolidated.volumeToRawPayload(sanitize(sample["volume"]))
     elif name.startswith("ip.floating"):
@@ -183,7 +181,7 @@ def process_consolidated_event(sample):
 
     # We use the instance_type_id for instance events
     if name.startswith("instance"):
-        payload = consolidated.constructPayload(metadata["event_type"], metadata.get("message",""), sample["instance_type_id"])
+        payload = consolidated.constructPayload(metadata["event_type"], metadata.get("message",""), metadata["instance_type_id"])
     elif name.startswith("volume.size"):
         payload = consolidated.constructPayload(metadata["event_type"], metadata.get("status",""), consolidated.volumeToRawPayload(sample["volume"]))
     elif name.startswith("ip.floating"):

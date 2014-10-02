@@ -44,12 +44,12 @@ def constructPayload(event_type, message, rawPayload):
     elif message == "error":
         eventResolution = 2
 
-    if event_type.startswith("image"):
-        _,verb = event_type.rsplit('.', 1)
-    # FIXME: make sure this doesn't break
+    rest,maybeVerb = event_type.rsplit('.', 1)
+    if maybeVerb in ("start", "end"):
+        eventEndpoint = {"start":1, "end":2}.get(maybeVerb)
+        _,verb = rest.rsplit('.', 1)
     else:
-        _,verb,endpoint = event_type.rsplit('.', 2)
-        eventEndpoint = {"start":1, "end":2}.get(endpoint)
+        verb = maybeVerb
 
     eventVerb = {"create":1, "update":2, "delete":3, "shutdown":4, "exists":5}.get(verb)
 
@@ -60,7 +60,14 @@ def constructPayload(event_type, message, rawPayload):
     if eventEndpoint is None:
         raise Exception("Unsupported event endpoint given to eventToByte")
 
-    return eventResolution + eventVerb << 8 + eventEndpoint << 16 + rawPayload << 32
+    print "lalalala"
+    print eventResolution
+    print eventVerb
+    print eventEndpoint
+    print rawPayload
+    x = eventResolution + (eventVerb << 8) + (eventEndpoint << 16) + (rawPayload << 32)
+    print x
+    return x
 
 # FIXME: don't hardcode instance sizes, stick them in a config file
 # somewhere, or just use the type ID.
