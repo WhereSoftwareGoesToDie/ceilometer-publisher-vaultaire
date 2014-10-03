@@ -119,17 +119,9 @@ def process_consolidated_pollster(sample):
     ## Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
     timestamp    = sanitize_timestamp(sample["timestamp"])
 
-    # If the flavor object is present, the flavor type is the "name" field of the flavor object
-    # Otherwise it is "instance_type"
-    flavor_type = None
-    if "flavor" in sample:
-        flavor_type = sample["flavor"].get("name", None)
-    elif "instance_type" in sample:
-        flavor_type = sample["instance_type"]
-
-    ## Special payload for instance events
     if name.startswith("instance"):
-        payload = p.instanceToRawPayload(flavor_type)
+        payload = sample["instance_type_id"]
+
     elif name.startswith("volume.size"):
         payload = p.volumeToRawPayload(sanitize(sample["volume"]))
     elif name.startswith("ip.floating"):
