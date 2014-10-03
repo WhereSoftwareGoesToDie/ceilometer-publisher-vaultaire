@@ -9,7 +9,7 @@ from hashlib import sha1
 from collections import OrderedDict as OD
 import ceilometer_publisher_vaultaire
 import copy as copy
-import siphash
+import ceilometer_publisher_vaultaire.siphash as siphash
 
 PP = pprint.pprint
 PF = pprint.pformat

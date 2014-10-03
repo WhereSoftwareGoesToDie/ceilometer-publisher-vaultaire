@@ -4,4 +4,3 @@ marquise
 six
 pytest
 pytest-cov
-siphash
