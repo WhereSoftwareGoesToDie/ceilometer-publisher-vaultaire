@@ -13,6 +13,8 @@ KEYS_TO_DELETE = [
     "updated_at",
     "id",
     "size",
+    "resource_metadata",
+    "flavor",
 ]
 
 RAW_PAYLOAD_IP_ALLOC = 1
@@ -29,7 +31,13 @@ def process_sample(sample):
     processed.append(process_raw(sample))
     return processed
 
+# FIXME: we want to make sourcedict inclusion whitelist-based rather
+# than blacklist-based, so we know what we're getting.
 def remove_extraneous(sourcedict):
+    """
+    Remove the keys we will never care about and/or change with each
+    message. This should be the last thing done to a sourcedict.
+    """
     for k in KEYS_TO_DELETE:
         sourcedict.pop(k, None)
 
@@ -39,6 +47,7 @@ def process_raw(sample):
     destructive updates to sample.
     """
     event_type = sample["resource_metadata"].get("event_type", None)
+    display_name = sample["resource_metadata"].get("display_name", None)
 
     flavor_type = get_flavor_type(sample)
 
@@ -64,6 +73,11 @@ def process_raw(sample):
     if sourcedict["type"] == "cumulative":
         sourcedict["_counter"] = 1
 
+    if display_name is not None:
+        sourcedict["display_name"] = display_name
+    if event_type is not None:
+        sourcedict["event_type"] = event_type
+
     # Cast Identifier sections with unique names, in case of
     # metadata overlap
 
@@ -74,10 +88,6 @@ def process_raw(sample):
 
     remove_extraneous(sourcedict)
 
-    # Remove the original resource_metadata and substitute
-    # our own flattened version
-    sourcedict.update(flatten(sourcedict.pop("resource_metadata")))
-    sourcedict = flatten(sourcedict)
     for k, v in sourcedict.items():
         sourcedict[k] = sanitize(str(v))
     return (address, sourcedict, timestamp, payload)
@@ -217,38 +227,6 @@ def sanitize(v):
         v = v.replace(":","-")
         v = v.replace(",","-")
     return v
-
-def flatten(n, prefix=""):
-    """Take a (potentially) nested dictionary and flatten it into a single
-    level. Also remove any keys/values that Marquise/Vaultaire can't handle.
-    """
-    flattened_dict = {}
-    for k,v in n.items():
-        k = sanitize(k)
-
-        # Vaultaire doesn't care about generated URLs for Ceilometer
-        # API references.
-        if str(k) == "links":
-            continue
-        if str(k).endswith('_url'):
-            continue
-
-        # Vaultaire doesn't want values if they have no contents.
-        if v is None:
-            continue
-
-        # If key has a parent, concatenate it into the new keyname.
-        if prefix != "":
-            k = "{}-{}".format(prefix,k)
-
-        # This was previously a check for __iter__, but strings have those now,
-        # so let's just check for dict-ness instead. No good on lists anyway.
-        if type(v) is not dict:
-            v = sanitize(v)
-            flattened_dict[k] = v
-        else:
-            flattened_dict.update(flatten(v, k))
-    return flattened_dict
 
 def sanitize_timestamp(v):
     """Convert a timestamp value into a standard form. Does no exception

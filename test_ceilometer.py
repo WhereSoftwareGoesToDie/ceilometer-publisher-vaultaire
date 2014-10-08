@@ -246,29 +246,6 @@ def test_remove_extraneous():
                     "name": "disk.read.requests",
                     "project_id": "78e2fc2a70314713b9f814ec634b5e10",
                     "resource_id": "cda0c65e-0fc6-4810-89d6-b5c78745f12d",
-                    "resource_metadata": {
-                        "display_name": "bar2",
-                        "flavor": {
-                            "disk": 0,
-                            "ephemeral": 0,
-                            "id": "42",
-                            "links": [
-                                {
-                                    "href": "http://192.168.42.114:8774/0632438bb4a748218b43ed9223b39f77/flavors/42",
-                                    "rel": "bookmark"
-                                }
-                            ],
-                            "name": "m1.nano",
-                            "ram": 64,
-                            "vcpus": 1
-                        },
-                        "host": "2a83dab20754db95ed7cf5a02ee0056d9d0f3d033215eb634403c533",
-                        "instance_type": "42",
-                        "memory_mb": 64,
-                        "name": "instance-00000002",
-                        "status": "active",
-                        "vcpus": 1
-                    },
                     "type": "cumulative",
                     "unit": "request",
                     "user_id": "8288e6719e8c4b6a8b130ae77af7abbc"
@@ -283,8 +260,8 @@ def test_remove_extraneous():
 def test_process_raw():
     process_raw = ceilometer_publisher_vaultaire.process.process_raw
 
-    expectedMiniSd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "_unit": "instance", "display_name": "bob", "foo": "bar", "instance_type": "13"}
-    expectedEventSd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "_unit": "instance", "display_name": "bob", "event_type": "instance.create.end", "flavor-name": "m1.tiny", "message": "Success", "instance_type_id": "14"}
+    expectedMiniSd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "_unit": "instance", "display_name": "bob"}
+    expectedEventSd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "_unit": "instance", "display_name": "bob", "event_type": "instance.create.end"}
     (addr1, sd1, ts1, p1) = process_raw(copy.copy(parsed_mini_json))
     (addr2, sd2, ts2, p2) = process_raw(copy.copy(parsed_event_json))
     assert sd1 == expectedMiniSd
@@ -333,27 +310,6 @@ def test_sanitize():
     assert sanitize("\"numberOf****sGiven\":\"0\"") == "\"numberOf****sGiven\"-\"0\""
     assert sanitize("[this,is,a,list]") == "[this-is-a-list]"
 
-def test_flatten():
-    """Take a known-good input, flatten it, then compare the result with a
-    known-good version that we've flattened beforehand. Results should match.
-    """
-
-    # We need to jump through a few hoops to ensure consistent iteration order
-    # over our data structure. So instead of using a dict, we use an
-    # OrderedDict.
-    #
-    # http://stackoverflow.com/questions/6921699/can-i-get-json-to-load-into-an-ordereddict-in-python
-    flattened_json = ceilometer_publisher_vaultaire.flatten(copy.copy(parsed_json))
-
-    normalised_dump = """{"id": "a994b3b8-21c6-11e4-8d23-a60a09774fec", "name": "disk.read.requests", "project_id": "78e2fc2a70314713b9f814ec634b5e10", "resource_id": "cda0c65e-0fc6-4810-89d6-b5c78745f12d", "resource_metadata": {"display_name": "bar2", "flavor": {"disk": 0, "ephemeral": 0, "id": "42", "links": [{"href": "http://192.168.42.114:8774/0632438bb4a748218b43ed9223b39f77/flavors/42", "rel": "bookmark"}], "name": "m1.nano", "ram": 64, "vcpus": 1}, "host": "2a83dab20754db95ed7cf5a02ee0056d9d0f3d033215eb634403c533", "instance_type": "42", "memory_mb": 64, "name": "instance-00000002", "status": "active", "vcpus": 1}, "timestamp": "2014-08-12T02:16:26Z", "type": "cumulative", "unit": "request", "user_id": "8288e6719e8c4b6a8b130ae77af7abbc", "volume": 332}"""
-    flattened_dump = """{"id": "a994b3b8-21c6-11e4-8d23-a60a09774fec", "name": "disk.read.requests", "project_id": "78e2fc2a70314713b9f814ec634b5e10", "resource_id": "cda0c65e-0fc6-4810-89d6-b5c78745f12d", "resource_metadata-display_name": "bar2", "resource_metadata-flavor-disk": 0, "resource_metadata-flavor-ephemeral": 0, "resource_metadata-flavor-id": "42", "resource_metadata-flavor-name": "m1.nano", "resource_metadata-flavor-ram": 64, "resource_metadata-flavor-vcpus": 1, "resource_metadata-host": "2a83dab20754db95ed7cf5a02ee0056d9d0f3d033215eb634403c533", "resource_metadata-instance_type": "42", "resource_metadata-memory_mb": 64, "resource_metadata-name": "instance-00000002", "resource_metadata-status": "active", "resource_metadata-vcpus": 1, "timestamp": "2014-08-12T02-16-26Z", "type": "cumulative", "unit": "request", "user_id": "8288e6719e8c4b6a8b130ae77af7abbc", "volume": 332}"""
-
-    assert parsed_json == json.loads(normalised_dump)
-    assert flattened_json == json.loads(flattened_dump)
-    print("NormSample JSON hashes to:    {}".format(sha1(json.dumps(parsed_json).encode('utf8')).hexdigest()))
-    print("Flattened JSON hashes to:     {}".format(sha1(json.dumps(flattened_json).encode('utf8')).hexdigest()))
-
-
 def test_sanitize_timestamp():
     """pylint sucks donkey word"""
     sanitize_timestamp = ceilometer_publisher_vaultaire.process.sanitize_timestamp
@@ -370,7 +326,6 @@ if __name__ == '__main__':
     test_process_consolidated_pollster()
     test_process_consolidated_event()
     test_sanitize()
-    test_flatten()
     test_sanitize_timestamp()
 
     sys.exit(0)
