@@ -33,9 +33,7 @@ def process_sample(sample):
             processed.append(consolidate_ip_event(sample))
     # ...and this pollster type.
     elif name.startswith("instance"):
-        consolidated_sample = consolidate_instance_flavor(sample)
-    if consolidated_sample is not None:
-        processed.append(consolidated_sample)
+        processed.append(consolidate_instance_flavor(sample))
     processed.append(process_raw(sample))
     return processed
 
