@@ -105,7 +105,7 @@ instance_pollster_json = """
 """
 
 expected_consolidated_instance_pollster_dict = {
-    "metric_name": "instance-m1.small",
+    "metric_name": "instance_flavor",
     "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
     "resource_id": "70979ae8-abc8-42dd-856e-19016911f615",
     "display_name": "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615",
@@ -283,7 +283,7 @@ def test_consolidate_instance_flavor():
 
     parsed_mini_json = json.loads(mini_json)
     (_, sd, ts, p) = ceilometer_publisher_vaultaire.consolidate_instance_flavor(parsed_mini_json)
-    expected_sd = {"project_id": "123", "resource_id": "456", "metric_name": "instance", "metric_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1", "_event": "0"}
+    expected_sd = {"project_id": "123", "resource_id": "456", "metric_name": "instance_flavor", "metric_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1", "_event": "0"}
     assert sd == expected_sd
     assert p == siphash.SipHash24("\0"*16, "13").hash()
     assert ts == 0
