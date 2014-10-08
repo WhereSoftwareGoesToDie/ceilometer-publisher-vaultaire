@@ -1,7 +1,3 @@
-"""We can't do much real ceilometer work, but we can test the functional
-bits of our code.
-"""
-
 import sys
 import json
 import pprint
@@ -262,7 +258,6 @@ def test_remove_extraneous():
     expected_json = json.loads(expected)
     assert local_json == expected_json
 
-
 def test_process_raw():
     process_raw = ceilometer_publisher_vaultaire.process.process_raw
 
@@ -280,7 +275,6 @@ def test_process_raw():
     assert addr1 != addr2
 
 def test_consolidate_instance_flavor():
-
     parsed_mini_json = json.loads(mini_json)
     (_, sd, ts, p) = ceilometer_publisher_vaultaire.consolidate_instance_flavor(parsed_mini_json)
     expected_sd = {"project_id": "123", "resource_id": "456", "metric_name": "instance_flavor", "metric_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1", "_event": "0"}
@@ -303,7 +297,6 @@ def test_consolidate_instance_characteristics():
     assert sd == {"project_id": "123", "resource_id": "456", "metric_name": "instance_vcpus", "metric_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1", "_event": "0"}
 
 def test_consolidate_instance_event():
-
     parsed_event_json = json.loads(event_json)
     (_, sd, ts, p) = ceilometer_publisher_vaultaire.consolidate_instance_event(parsed_event_json)
     expected_sd =  {"project_id": "123", "resource_id": "456", "metric_name": "instance", "metric_type": "gauge", "counter_unit": "instance", "_consolidated": "1", "_event": "1", "display_name": "bob"}
@@ -326,7 +319,6 @@ def test_sanitize():
     assert sanitize("[this,is,a,list]") == "[this-is-a-list]"
 
 def test_sanitize_timestamp():
-    """pylint sucks donkey word"""
     sanitize_timestamp = ceilometer_publisher_vaultaire.process.sanitize_timestamp
     assert sanitize_timestamp("1970-01-01 00:00:00") == 0
     assert sanitize_timestamp("1970-01-01T00:00:00Z") == 0
