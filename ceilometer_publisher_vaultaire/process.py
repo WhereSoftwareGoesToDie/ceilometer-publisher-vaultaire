@@ -264,7 +264,6 @@ def get_flavor_type(sample):
         flavor_type = sample["instance_type"]
     return flavor_type
 
-
 def get_consolidated_payload(event_type, message, rawPayload):
     """
     eventResolution is passed in message, if none is given assumed to be Success
