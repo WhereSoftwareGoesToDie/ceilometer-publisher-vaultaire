@@ -46,15 +46,7 @@ def process_raw(sample):
 
     flavor_type = get_flavor_type(sample)
 
-    id_elements = [
-        sample["resource_id"],
-        sample["project_id"],
-        sample["name"],
-        sample["unit"],
-        event_type,
-        flavor_type,
-    ]
-
+    id_elements = get_id_elements(sample, sample["name"], consolidated=False)
     address = get_address(id_elements)
 
     # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
@@ -165,19 +157,33 @@ def process_consolidated_pollster(sample):
 
     # Common elements to all messages are r_id + p_id + counter_(name,
     # type, unit)
-    id_elements = [
-        resource_id,
-        project_id,
-        name,
-        counter_type,
-        counter_unit,
-        "_consolidated",
-    ]
+    id_elements = get_id_elements(sample, name, consolidated=True)
     address = get_address(id_elements)
 
     # Filter out Nones and stringify everything so we don't get
     # TypeErrors on concatenation
     return (address, sourcedict, timestamp, payload)
+
+def get_id_elements(sample, name, consolidated=False):
+    """
+    get_id_elements returns a list of components uniquely identifying a
+    metric.
+    """
+    id_elements = [
+        sample["project_id"],
+        sample["resource_id"],
+        sample["unit"],
+        sample["type"],
+        name,
+    ]
+    if consolidated:
+        id_elements.append("_consolidated")
+    # If this is an event sample, the event type is always part of the
+    # identifier (as is the fact that it is an event).
+    if "event_type" in sample["resource_metadata"]:
+        id_elements.append("_event")
+        id_elements.append(sample["resource_metadata"]["event_type"])
+    return id_elements
 
 def process_consolidated_event(sample):
     # Pull out and clean fields which are always present
@@ -207,17 +213,7 @@ def process_consolidated_event(sample):
                                        event=True,
                                        consolidated=True)
 
-    # Common elements to all messages are r_id + p_id + counter_(name,
-    # type, unit)
-    id_elements = [
-        resource_id,
-        project_id,
-        name,
-        counter_type,
-        counter_unit,
-        "_event",
-        "_consolidated",
-    ]
+    id_elements = get_id_elements(sample, name, consolidated=True)
     address = get_address(id_elements)
 
     return (address, sourcedict, timestamp, payload)
