@@ -55,12 +55,7 @@ def process_raw(sample):
         flavor_type,
     ]
 
-    # Filter out Nones and stringify everything so we don't get TypeErrors on concatenation
-    id_elements = [ str(x) for x in id_elements if x is not None ]
-
-    # Generate the unique identifer for the sample
-    identifier = "".join(id_elements)
-    address = Marquise.hash_identifier(identifier)
+    address = get_address(id_elements)
 
     # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
     timestamp = sanitize_timestamp(sample["timestamp"])
@@ -126,6 +121,16 @@ def build_base_sourcedict(payload,
 
     return sourcedict
 
+def get_address(id_elements):
+    """
+    get_address returns a unique Vaultaire address calculated from the
+    supplied id_elements, which should be a list of strings considered part
+    of the primary key for the relevant metric.
+    """
+    id_elements = [ str(x) for x in id_elements if x is not None ]
+    identifier = "".join(id_elements)
+    return Marquise.hash_identifier(identifier)
+
 def process_consolidated_pollster(sample):
     frames = []
 
@@ -168,14 +173,10 @@ def process_consolidated_pollster(sample):
         counter_unit,
         "_consolidated",
     ]
+    address = get_address(id_elements)
 
     # Filter out Nones and stringify everything so we don't get
     # TypeErrors on concatenation
-    id_elements = [ str(x) for x in id_elements if x is not None ]
-
-    # Generate the unique identifer for the sample
-    identifier = "".join(id_elements)
-    address = Marquise.hash_identifier(identifier)
     return (address, sourcedict, timestamp, payload)
 
 def process_consolidated_event(sample):
@@ -217,14 +218,8 @@ def process_consolidated_event(sample):
         "_event",
         "_consolidated",
     ]
+    address = get_address(id_elements)
 
-    # Filter out Nones and stringify everything so we don't get
-    # TypeErrors on concatenation
-    id_elements = [ str(x) for x in id_elements if x is not None ]
-
-    # Generate the unique identifer for the sample
-    identifier = "".join(id_elements)
-    address = Marquise.hash_identifier(identifier)
     return (address, sourcedict, timestamp, payload)
 
 def sanitize(v):
