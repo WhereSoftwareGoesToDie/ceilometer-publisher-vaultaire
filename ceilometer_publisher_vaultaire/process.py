@@ -145,7 +145,7 @@ def consolidate_instance_flavor(sample):
 # FIXME: tests
 def consolidate_instance_vcpus(sample):
     name = "instance_vcpus"
-    payload = sample["flavor"]["vcpus"]
+    payload = sample["resource_metadata"]["flavor"]["vcpus"]
     timestamp = sanitize_timestamp(sample["timestamp"])
     sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
     address = get_address(sample, name, consolidated=True)
@@ -154,7 +154,7 @@ def consolidate_instance_vcpus(sample):
 # FIXME: tests
 def consolidate_instance_ram(sample):
     name = "instance_ram"
-    payload = sample["flavor"]["ram"]
+    payload = sample["resource_metadata"]["flavor"]["ram"]
     timestamp = sanitize_timestamp(sample["timestamp"])
     sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
     address = get_address(sample, name, consolidated=True)
