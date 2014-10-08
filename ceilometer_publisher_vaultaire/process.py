@@ -22,9 +22,15 @@ RAW_PAYLOAD_IP_ALLOC = 1
 def process_sample(sample):
     processed = []
     consolidated_sample = None
+    name = sample["name"]
+    # We want to do some more processing to these event types...
     if "event_type" in sample["resource_metadata"]:
-        consolidated_sample = process_consolidated_event(sample)
-    else:
+        if (name.startswith("instance") or
+            name.startswith("volume.size") or
+            name.startswith("ip.floating")):
+            consolidated_sample = process_consolidated_event(sample)
+    # ...and this pollster type.
+    elif name.startswith("instance"):
         consolidated_sample = process_consolidated_pollster(sample)
     if consolidated_sample is not None:
         processed.append(consolidated_sample)
