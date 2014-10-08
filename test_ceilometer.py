@@ -334,12 +334,12 @@ def test_sanitize_timestamp():
     assert sanitize_timestamp("1993-03-17T21:00:00+1000") == 732366000*10**9
 
 if __name__ == '__main__':
-    # process.py
     test_process_sample()
     test_remove_extraneous()
     test_process_raw()
     test_consolidate_instance_flavor()
     test_consolidate_instance_event()
+    test_consolidate_instance_characteristics()
     test_sanitize()
     test_sanitize_timestamp()
 
