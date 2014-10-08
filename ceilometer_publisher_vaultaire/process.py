@@ -34,6 +34,8 @@ def process_sample(sample):
     # ...and this pollster type.
     elif name.startswith("instance"):
         processed.append(consolidate_instance_flavor(sample))
+        processed.append(consolidate_instance_ram(sample))
+        processed.append(consolidate_instance_vcpus(sample))
     processed.append(process_raw(sample))
     return processed
 
@@ -138,6 +140,24 @@ def consolidate_instance_flavor(sample):
     sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
     address = get_address(sample, name, consolidated=True)
 
+    return (address, sourcedict, timestamp, payload)
+
+# FIXME: tests
+def consolidate_instance_vcpus(sample):
+    name = "instance_vcpus"
+    payload = sample["flavor"]["vcpus"]
+    timestamp = sanitize_timestamp(sample["timestamp"])
+    sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
+    address = get_address(sample, name, consolidated=True)
+    return (address, sourcedict, timestamp, payload)
+
+# FIXME: tests
+def consolidate_instance_ram(sample):
+    name = "instance_ram"
+    payload = sample["flavor"]["ram"]
+    timestamp = sanitize_timestamp(sample["timestamp"])
+    sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
+    address = get_address(sample, name, consolidated=True)
     return (address, sourcedict, timestamp, payload)
 
 def get_id_elements(sample, name, consolidated):
