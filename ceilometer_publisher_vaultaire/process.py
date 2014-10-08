@@ -103,6 +103,31 @@ def process_raw(sample):
         sourcedict[k] = sanitize(str(v))
     return (address, sourcedict, timestamp, payload)
 
+def build_base_sourcedict(payload,
+                     project_id, resource_id, name, counter_unit,
+                     counter_type, metadata,
+                     event=False, consolidated=False):
+    sourcedict = {}
+    sourcedict["_event"]        = 1 if event else 0
+    sourcedict["_consolidated"] = 1 if consolidated else 0
+    sourcedict["project_id"]    = project_id
+    sourcedict["resource_id"]   = resource_id
+    sourcedict["counter_name"]  = name
+    sourcedict["counter_unit"]  = counter_unit
+    sourcedict["counter_type"]  = counter_type
+    sourcedict["display_name"]  = metadata.get("display_name", "")
+
+    if counter_type == "cumulative":
+        sourcedict["_counter"] = 1
+
+    if type(payload) == float:
+        sourcedict["_float"] = 1
+
+    for k, v in sourcedict.items():
+        sourcedict[k] = sanitize(str(v))
+
+    return sourcedict
+
 def process_consolidated_pollster(sample):
     # Pull out and clean fields which are always present
     name         = sample["name"]
@@ -127,28 +152,11 @@ def process_consolidated_pollster(sample):
         # else.
         return None
 
-    # Build the source dict
-    sourcedict = {}
-    sourcedict["_event"]        = 0
-    sourcedict["_consolidated"] = 1
-    sourcedict["project_id"]    = project_id
-    sourcedict["resource_id"]   = resource_id
-    sourcedict["counter_name"]  = name
-    sourcedict["counter_unit"]  = counter_unit
-    sourcedict["counter_type"]  = counter_type
-    sourcedict["display_name"]  = metadata.get("display_name", "")
-    # Vaultaire does not care about the datatype of the payload, so we
-    # need to specify it in metadata.
-    if type(payload) == float:
-        sourcedict["_float"] = 1
-
-    # If it's a cumulative value, this needs to go in the metadata as
-    # well.
-    if counter_type == "cumulative":
-        sourcedict["_counter"] = 1
-
-    for k, v in sourcedict.items():
-        sourcedict[k] = sanitize(str(v))
+    sourcedict = build_base_sourcedict(payload, project_id, resource_id,
+                                       name, counter_unit, counter_type,
+                                       metadata,
+                                       event=False,
+                                       consolidated=True)
 
     # Common elements to all messages are r_id + p_id + counter_(name,
     # type, unit)
@@ -192,26 +200,11 @@ def process_consolidated_event(sample):
     else:
         payload = sanitize(sample["volume"])
 
-    # Build the source dict
-    sourcedict = {}
-    sourcedict["_event"]        = 1
-    sourcedict["_consolidated"] = 1
-    sourcedict["project_id"]    = project_id
-    sourcedict["resource_id"]   = resource_id
-    sourcedict["counter_name"]  = name
-    sourcedict["counter_unit"]  = counter_unit
-    sourcedict["counter_type"]  = counter_type
-    sourcedict["display_name"]  = metadata.get("display_name", "")
-    ## Vaultaire cares about the datatype of the payload
-    if type(payload) == float:
-        sourcedict["_float"] = 1
-
-    ## If it's a cumulative value, we need to tell vaultaire
-    if counter_type == "cumulative":
-        sourcedict["_counter"] = 1
-
-    for k, v in sourcedict.items():
-        sourcedict[k] = sanitize(str(v))
+    sourcedict = build_base_sourcedict(payload, project_id, resource_id,
+                                       name, counter_unit, counter_type,
+                                       metadata,
+                                       event=True,
+                                       consolidated=True)
 
     # Common elements to all messages are r_id + p_id + counter_(name,
     # type, unit)
