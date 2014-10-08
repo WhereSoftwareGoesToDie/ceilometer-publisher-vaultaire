@@ -87,21 +87,21 @@ def process_raw(sample):
         sourcedict[k] = sanitize(str(v))
     return (address, sourcedict, timestamp, payload)
 
-def build_base_sourcedict(payload,
-                     project_id, resource_id, name, counter_unit,
-                     counter_type, metadata,
-                     event=False, consolidated=False):
-    sourcedict = {}
-    sourcedict["_event"]        = 1 if event else 0
-    sourcedict["_consolidated"] = 1 if consolidated else 0
-    sourcedict["project_id"]    = project_id
-    sourcedict["resource_id"]   = resource_id
-    sourcedict["counter_name"]  = name
-    sourcedict["counter_unit"]  = counter_unit
-    sourcedict["counter_type"]  = counter_type
-    sourcedict["display_name"]  = metadata.get("display_name", "")
+def is_event_sample(sample):
+    return "event_type" in sample["resource_metadata"]
 
-    if counter_type == "cumulative":
+def build_base_sourcedict(payload, sample, name, consolidated=False):
+    sourcedict = {}
+    sourcedict["_event"]        = 1 if is_event_sample(sample) else 0
+    sourcedict["_consolidated"] = 1 if consolidated else 0
+    sourcedict["project_id"]    = sample["project_id"]
+    sourcedict["resource_id"]   = sample["resource_id"]
+    sourcedict["counter_name"]  = name
+    sourcedict["counter_unit"]  = sample["unit"]
+    sourcedict["counter_type"]  = sample["type"]
+    sourcedict["display_name"]  = sample["resource_metadata"].get("display_name", "")
+
+    if sample["type"] == "cumulative":
         sourcedict["_counter"] = 1
 
     if type(payload) == float:
@@ -149,11 +149,7 @@ def process_consolidated_pollster(sample):
         # else.
         return None
 
-    sourcedict = build_base_sourcedict(payload, project_id, resource_id,
-                                       name, counter_unit, counter_type,
-                                       metadata,
-                                       event=False,
-                                       consolidated=True)
+    sourcedict = build_base_sourcedict(payload, sample, name, consolidated=True)
 
     # Common elements to all messages are r_id + p_id + counter_(name,
     # type, unit)
@@ -206,11 +202,7 @@ def process_consolidated_event(sample):
     else:
         payload = sanitize(sample["volume"])
 
-    sourcedict = build_base_sourcedict(payload, project_id, resource_id,
-                                       name, counter_unit, counter_type,
-                                       metadata,
-                                       event=True,
-                                       consolidated=True)
+    sourcedict = build_base_sourcedict(payload, sample, name, consolidated=True)
 
     address = get_address(sample, name, consolidated=True)
 
