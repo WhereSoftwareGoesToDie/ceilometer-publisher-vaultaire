@@ -175,7 +175,7 @@ def get_id_elements(sample, name, consolidated):
         id_elements.append("_consolidated")
     # If this is an event sample, the event type is always part of the
     # identifier (as is the fact that it is an event).
-    if "event_type" in sample["resource_metadata"]:
+    if is_event_sample(sample):
         id_elements.append("_event")
         id_elements.append(sample["resource_metadata"]["event_type"])
     return id_elements
