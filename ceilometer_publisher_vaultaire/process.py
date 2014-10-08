@@ -117,7 +117,7 @@ def process_consolidated_pollster(sample):
 
     # We use a siphash of the instance_type for instance pollsters
     if name.startswith("instance"):
-        payload = canonical_siphash(metadata["instance_type"])
+        payload = hash_flavor_id(metadata["instance_type"])
     elif name.startswith("volume.size"):
         payload = consolidated.volumeToRawPayload(sanitize(sample["volume"]))
     elif name.startswith("ip.floating"):
@@ -307,8 +307,17 @@ def sanitize_timestamp(v):
     time_since_epoch = (timestamp - epoch).total_seconds() # total_seconds() is in Py2.7 and later.
     return int(time_since_epoch * NANOSECONDS_PER_SECOND)
 
-def canonical_siphash(the_thing):
-    return ceilometer_publisher_vaultaire.siphash.SipHash24("\0"*16, the_thing).hash()
+def hash_flavor_id(flavor_id):
+    """
+    hash_flavor_id will return the SipHash-2-4 of a string with a null
+    key.
+
+    We do this to instance types before we store them because a)
+    instance types are strings and b) we can't assume they won't change
+    (ceilometer doesn't give us easy access to the guaranteed-integral
+    instance_type_id).
+    """
+    return ceilometer_publisher_vaultaire.siphash.SipHash24("\0"*16, instance_type).hash()
 
 def get_flavor_type(sample):
     flavor_type = None
