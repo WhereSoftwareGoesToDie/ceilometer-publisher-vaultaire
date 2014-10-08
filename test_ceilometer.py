@@ -219,7 +219,15 @@ mini_json = """
                     "resource_metadata": {
                     "instance_type": "13",
                         "foo": "bar",
-                        "display_name": "bob"
+                        "display_name": "bob",
+                        "flavor": {
+                            "name": "m1.tiny",
+                            "ram": 512,
+                            "ephemeral": 0,
+                            "vcpus": 1,
+                            "disk": 1,
+                            "id": "1"
+                        }
                     }
                 }
                 """
@@ -230,9 +238,8 @@ parsed_mini_json = json.loads(mini_json)
 def test_process_sample():
     mini_list = ceilometer_publisher_vaultaire.process.process_sample(copy.copy(parsed_mini_json))
     event_list = ceilometer_publisher_vaultaire.process.process_sample(copy.copy(parsed_event_json))
-    #check that the for the non-event only raw was called
-    assert len(mini_list) == 2
-    #check the
+    # We're expecting three consolidated pollsters and one raw pollster.
+    assert len(mini_list) == 4
     assert len(event_list) == 2
     #Check the addresses the raw and consolidated versions produce are distinct
     assert event_list[0][0] != event_list[1][0]
