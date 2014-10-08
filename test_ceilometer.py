@@ -111,7 +111,8 @@ expected_consolidated_instance_pollster_dict = {
     "display_name": "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615",
     "counter_type": "gauge",
     "counter_unit": "instance",
-    "_consolidated": "1"
+    "_consolidated": "1",
+    "_event": "0"
 }
 
 expected_consolidated_instance_pollster_payload = siphash.SipHash24("0000000000000000", "2").hash()
@@ -299,7 +300,7 @@ def test_process_consolidated_pollster():
 
     parsed_mini_json = json.loads(mini_json)
     (_, sd, ts, p) = ceilometer_publisher_vaultaire.process_consolidated_pollster(parsed_mini_json)
-    expected_sd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1"}
+    expected_sd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1", "_event": "0"}
     assert sd == expected_sd
     assert p == siphash.SipHash24("0000000000000000", "13").hash()
     assert ts == 0

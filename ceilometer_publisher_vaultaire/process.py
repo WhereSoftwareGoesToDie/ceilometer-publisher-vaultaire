@@ -127,6 +127,7 @@ def process_consolidated_pollster(sample):
 
     # Build the source dict
     sourcedict = {}
+    sourcedict["_event"]        = 0
     sourcedict["_consolidated"] = 1
     sourcedict["project_id"]    = project_id
     sourcedict["resource_id"]   = resource_id
