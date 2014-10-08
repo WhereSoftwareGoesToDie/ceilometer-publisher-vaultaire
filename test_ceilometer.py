@@ -117,7 +117,6 @@ expected_consolidated_instance_pollster_dict = {
 
 expected_consolidated_instance_pollster_payload = siphash.SipHash24("\0"*16, "2").hash()
 
-
 instance_event_json = """
 {
     "id": "3d83095a-486c-11e4-b39f-525400f01ec9",
@@ -273,17 +272,17 @@ def test_process_raw():
     assert p2 == 23
     assert addr1 != addr2
 
-def test_process_consolidated_pollster():
+def test_consolidate_instance_flavor():
 
     parsed_mini_json = json.loads(mini_json)
-    (_, sd, ts, p) = ceilometer_publisher_vaultaire.process_consolidated_pollster(parsed_mini_json)
+    (_, sd, ts, p) = ceilometer_publisher_vaultaire.consolidate_instance_flavor(parsed_mini_json)
     expected_sd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1", "_event": "0"}
     assert sd == expected_sd
     assert p == siphash.SipHash24("\0"*16, "13").hash()
     assert ts == 0
     parsed_instance_pollster_json = json.loads(instance_pollster_json)
 
-    (_, sd, _, p) = ceilometer_publisher_vaultaire.process_consolidated_pollster(parsed_instance_pollster_json)
+    (_, sd, _, p) = ceilometer_publisher_vaultaire.consolidate_instance_flavor(parsed_instance_pollster_json)
     assert sd == expected_consolidated_instance_pollster_dict
     assert p == expected_consolidated_instance_pollster_payload
 
@@ -323,7 +322,7 @@ if __name__ == '__main__':
     test_process_sample()
     test_remove_extraneous()
     test_process_raw()
-    test_process_consolidated_pollster()
+    test_consolidate_instance_flavor()
     test_process_consolidated_event()
     test_sanitize()
     test_sanitize_timestamp()

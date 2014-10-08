@@ -31,7 +31,7 @@ def process_sample(sample):
             consolidated_sample = process_consolidated_event(sample)
     # ...and this pollster type.
     elif name.startswith("instance"):
-        consolidated_sample = process_consolidated_pollster(sample)
+        consolidated_sample = consolidate_instance_flavor(sample)
     if consolidated_sample is not None:
         processed.append(consolidated_sample)
     processed.append(process_raw(sample))
@@ -134,38 +134,13 @@ def get_address(sample, name, consolidated=False):
     identifier = "".join(id_elements)
     return Marquise.hash_identifier(identifier)
 
-def process_consolidated_pollster(sample):
-    # Pull out and clean fields which are always present
-    name         = sample["name"]
-    project_id   = sample["project_id"]
-    resource_id  = sample["resource_id"]
-    metadata     = sample["resource_metadata"]
-    ## Cast unit as a special metadata type
-    counter_unit = sample["unit"]
-    counter_type = sample["type"]
-    ## Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
-    timestamp    = sanitize_timestamp(sample["timestamp"])
-
-    # We use a siphash of the instance_type for instance pollsters
-    if name.startswith("instance"):
-        payload = hash_flavor_id(metadata["instance_type"])
-    elif name.startswith("volume.size"):
-        payload = volume_to_raw_payload(sanitize(sample["volume"]))
-    elif name.startswith("ip.floating"):
-        payload = RAW_PAYLOAD_IP_ALLOC
-    else:
-        # We don't need to write out a consolidated version of anything
-        # else.
-        return None
-
+def consolidate_instance_flavor(sample):
+    name = sample["name"]
+    payload = hash_flavor_id(sample["resource_metadata"]["instance_type"])
+    timestamp = sanitize_timestamp(sample["timestamp"])
     sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
-
-    # Common elements to all messages are r_id + p_id + counter_(name,
-    # type, unit)
     address = get_address(sample, name, consolidated=True)
 
-    # Filter out Nones and stringify everything so we don't get
-    # TypeErrors on concatenation
     return (address, sourcedict, timestamp, payload)
 
 def get_id_elements(sample, name, consolidated):
