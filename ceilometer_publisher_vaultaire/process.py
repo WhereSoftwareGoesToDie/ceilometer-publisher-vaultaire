@@ -46,8 +46,7 @@ def process_raw(sample):
 
     flavor_type = get_flavor_type(sample)
 
-    id_elements = get_id_elements(sample, sample["name"], consolidated=False)
-    address = get_address(id_elements)
+    address = get_address(sample, sample["name"], consolidated=False)
 
     # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
     timestamp = sanitize_timestamp(sample["timestamp"])
@@ -113,12 +112,13 @@ def build_base_sourcedict(payload,
 
     return sourcedict
 
-def get_address(id_elements):
+def get_address(sample, name, consolidated=False):
     """
     get_address returns a unique Vaultaire address calculated from the
     supplied id_elements, which should be a list of strings considered part
     of the primary key for the relevant metric.
     """
+    id_elements = get_id_elements(sample, name, consolidated)
     id_elements = [ str(x) for x in id_elements if x is not None ]
     identifier = "".join(id_elements)
     return Marquise.hash_identifier(identifier)
@@ -157,14 +157,13 @@ def process_consolidated_pollster(sample):
 
     # Common elements to all messages are r_id + p_id + counter_(name,
     # type, unit)
-    id_elements = get_id_elements(sample, name, consolidated=True)
-    address = get_address(id_elements)
+    address = get_address(sample, name, consolidated=True)
 
     # Filter out Nones and stringify everything so we don't get
     # TypeErrors on concatenation
     return (address, sourcedict, timestamp, payload)
 
-def get_id_elements(sample, name, consolidated=False):
+def get_id_elements(sample, name, consolidated):
     """
     get_id_elements returns a list of components uniquely identifying a
     metric.
@@ -213,8 +212,7 @@ def process_consolidated_event(sample):
                                        event=True,
                                        consolidated=True)
 
-    id_elements = get_id_elements(sample, name, consolidated=True)
-    address = get_address(id_elements)
+    address = get_address(sample, name, consolidated=True)
 
     return (address, sourcedict, timestamp, payload)
 
