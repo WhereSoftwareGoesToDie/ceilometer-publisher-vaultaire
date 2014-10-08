@@ -266,17 +266,18 @@ def get_consolidated_payload(event_type, message, rawPayload):
     # If no event endpoint is included, assume instantaneous event (e.g. image deletion)
     eventEndpoint = 0
 
-    if message == "Success":
+    if message.lower() == "success":
         eventResolution = 0
     # Empty message implies success
     elif message == "":
         eventResolution = 0
-    elif message == "Failure":
+    elif message.lower() == "failure":
         eventResolution = 1
-    elif message == "error":
+    elif message.lower() == "error":
         eventResolution = 2
 
     rest,maybeVerb = event_type.rsplit('.', 1)
+    maybeVerb = maybeVerb.lower()
     if maybeVerb in ("start", "end"):
         eventEndpoint = {"start":1, "end":2}.get(maybeVerb)
         _,verb = rest.rsplit('.', 1)
