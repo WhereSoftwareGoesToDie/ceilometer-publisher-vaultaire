@@ -86,10 +86,8 @@ def process_raw(sample):
     if event_type is not None:
         sourcedict["event_type"] = event_type
 
-    # XXX: why do we call these counter_* even when they're
-    # not counters?
-    sourcedict["counter_name"] = sanitize(sourcedict.pop("name"))
-    sourcedict["counter_type"] = sanitize(sourcedict.pop("type"))
+    sourcedict["metric_name"] = sanitize(sourcedict.pop("name"))
+    sourcedict["metric_type"] = sanitize(sourcedict.pop("type"))
 
     remove_extraneous(sourcedict)
 
