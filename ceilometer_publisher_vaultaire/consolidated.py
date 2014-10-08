@@ -62,23 +62,5 @@ def constructPayload(event_type, message, rawPayload):
 
     return eventResolution + (eventVerb << 8) + (eventEndpoint << 16) + (rawPayload << 32)
 
-# FIXME: don't hardcode instance sizes, stick them in a config file
-# somewhere, or just use the type ID.
-def instanceToRawPayload(instanceType):
-    if instanceType == "m1.tiny":
-        ret = 1
-    elif instanceType == "m1.small":
-        ret = 2
-    elif instanceType == "m1.medium":
-        ret = 3
-    elif instanceType == "m1.large":
-        ret = 4
-    elif instanceType == "m1.xlarge":
-        ret = 5
-    else:
-        ret = 0
-        raise Exception("Unsupported instance type given to instanceToPayload")
-    return ret
-
 def volumeToRawPayload(volume):
     return volume
