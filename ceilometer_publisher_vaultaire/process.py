@@ -132,12 +132,11 @@ def get_address(sample, name, consolidated=False):
     return Marquise.hash_identifier(identifier)
 
 def consolidate_instance_flavor(sample):
-    name = sample["name"]
+    name = "instance_flavor"
     payload = hash_flavor_id(sample["resource_metadata"]["instance_type"])
     timestamp = sanitize_timestamp(sample["timestamp"])
     sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
     address = get_address(sample, name, consolidated=True)
-
     return (address, sourcedict, timestamp, payload)
 
 def get_id_elements(sample, name, consolidated):
