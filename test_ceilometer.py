@@ -286,17 +286,17 @@ def test_consolidate_instance_flavor():
     assert sd == expected_consolidated_instance_pollster_dict
     assert p == expected_consolidated_instance_pollster_payload
 
-def test_process_consolidated_event():
+def test_consolidate_instance_event():
 
     parsed_event_json = json.loads(event_json)
-    (_, sd, ts, p) = ceilometer_publisher_vaultaire.process_consolidated_event(parsed_event_json)
+    (_, sd, ts, p) = ceilometer_publisher_vaultaire.consolidate_instance_event(parsed_event_json)
     expected_sd =  {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "counter_unit": "instance", "_consolidated": "1", "_event": "1", "display_name": "bob"}
     assert sd == expected_sd
     assert p == (1 << 8) + (2 << 16) + (14 << 32)
     assert ts == 0
     parsed_instance_event_json = json.loads(instance_event_json)
 
-    (_, sd, _, p) = ceilometer_publisher_vaultaire.process_consolidated_event(parsed_instance_event_json)
+    (_, sd, _, p) = ceilometer_publisher_vaultaire.consolidate_instance_event(parsed_instance_event_json)
     assert sd == expected_consolidated_instance_event_dict
     assert p == expected_consolidated_instance_event_payload
 
@@ -323,7 +323,7 @@ if __name__ == '__main__':
     test_remove_extraneous()
     test_process_raw()
     test_consolidate_instance_flavor()
-    test_process_consolidated_event()
+    test_consolidate_instance_event()
     test_sanitize()
     test_sanitize_timestamp()
 

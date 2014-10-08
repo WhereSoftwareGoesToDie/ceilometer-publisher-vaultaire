@@ -25,10 +25,12 @@ def process_sample(sample):
     name = sample["name"]
     # We want to do some more processing to these event types...
     if "event_type" in sample["resource_metadata"]:
-        if (name.startswith("instance") or
-            name.startswith("volume.size") or
-            name.startswith("ip.floating")):
-            consolidated_sample = process_consolidated_event(sample)
+        if name.startswith("instance"):
+            processed.append(consolidate_instance_event(sample))
+        elif name.startswith("volume.size"):
+            processed.append(consolidate_volume_event(sample))
+        elif name.startswith("ip.floating"):
+            processed.append(consolidate_ip_event(sample))
     # ...and this pollster type.
     elif name.startswith("instance"):
         consolidated_sample = consolidate_instance_flavor(sample)
@@ -164,28 +166,25 @@ def get_id_elements(sample, name, consolidated):
         id_elements.append(sample["resource_metadata"]["event_type"])
     return id_elements
 
-def process_consolidated_event(sample):
-    # Pull out and clean fields which are always present
-    name         = sample["name"]
-    project_id   = sample["project_id"]
-    resource_id  = sample["resource_id"]
+def consolidate_instance_event(sample):
     metadata     = sample["resource_metadata"]
-    ## Cast unit as a special metadata type
-    counter_unit = sample["unit"]
-    counter_type = sample["type"]
-    ## Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
+    payload = get_consolidated_payload(metadata["event_type"], metadata.get("message",""), metadata["instance_type_id"])
+    return process_consolidated_event(sample, payload)
+
+def consolidate_volume_event(sample):
+    metadata     = sample["resource_metadata"]
+    payload = get_consolidated_payload(metadata["event_type"], metadata.get("status",""), volume_to_raw_payload(sample["volume"]))
+    return process_consolidated_event(sample, payload)
+
+def consolidate_ip_event(sample):
+    metadata     = sample["resource_metadata"]
+    payload = get_consolidated_payload(metadata["event_type"], "", RAW_PAYLOAD_IP_ALLOC)
+    return process_consolidated_event(sample, payload)
+
+def process_consolidated_event(sample, payload):
+    name         = sample["name"]
+    metadata     = sample["resource_metadata"]
     timestamp    = sanitize_timestamp(sample["timestamp"])
-
-    # We use the instance_type_id for instance events
-    if name.startswith("instance"):
-        payload = get_consolidated_payload(metadata["event_type"], metadata.get("message",""), metadata["instance_type_id"])
-    elif name.startswith("volume.size"):
-        payload = get_consolidated_payload(metadata["event_type"], metadata.get("status",""), volume_to_raw_payload(sample["volume"]))
-    elif name.startswith("ip.floating"):
-        payload = get_consolidated_payload(metadata["event_type"], "", RAW_PAYLOAD_IP_ALLOC)
-    else:
-        payload = sanitize(sample["volume"])
-
     sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
     address = get_address(sample, name, consolidated=True)
     return (address, sourcedict, timestamp, payload)
