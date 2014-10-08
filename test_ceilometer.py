@@ -293,6 +293,15 @@ def test_consolidate_instance_flavor():
     assert sd == expected_consolidated_instance_pollster_dict
     assert p == expected_consolidated_instance_pollster_payload
 
+def test_consolidate_instance_characteristics():
+    parsed_mini_json = json.loads(mini_json)
+    (_, sd, ts, p) = ceilometer_publisher_vaultaire.consolidate_instance_ram(parsed_mini_json)
+    assert p == 512
+    assert sd == {"project_id": "123", "resource_id": "456", "metric_name": "instance_ram", "metric_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1", "_event": "0"}
+    (_, sd, ts, p) = ceilometer_publisher_vaultaire.consolidate_instance_vcpus(parsed_mini_json)
+    assert p == 1
+    assert sd == {"project_id": "123", "resource_id": "456", "metric_name": "instance_vcpus", "metric_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1", "_event": "0"}
+
 def test_consolidate_instance_event():
 
     parsed_event_json = json.loads(event_json)
