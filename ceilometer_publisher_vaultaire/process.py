@@ -188,7 +188,7 @@ def consolidate_instance_event(sample):
 
 def consolidate_volume_event(sample):
     metadata     = sample["resource_metadata"]
-    payload = get_consolidated_payload(metadata["event_type"], metadata.get("status",""), volume_to_raw_payload(sample["volume"]))
+    payload = get_consolidated_payload(metadata["event_type"], metadata.get("status",""), sample["volume"])
     return process_consolidated_event(sample, payload)
 
 def consolidate_ip_event(sample):
@@ -314,6 +314,3 @@ def get_consolidated_payload(event_type, message, rawPayload):
         raise Exception("Unsupported event endpoint given to get_consolidated_payload")
 
     return eventResolution + (eventVerb << 8) + (eventEndpoint << 16) + (rawPayload << 32)
-
-def volume_to_raw_payload(volume):
-    return volume
