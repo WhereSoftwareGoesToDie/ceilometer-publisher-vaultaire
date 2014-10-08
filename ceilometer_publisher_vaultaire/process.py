@@ -15,6 +15,9 @@ KEYS_TO_DELETE = [
     "size",
     "resource_metadata",
     "flavor",
+    "launched_at",
+    "terminated_at",
+    "deleted_at",
 ]
 
 RAW_PAYLOAD_IP_ALLOC = 1
