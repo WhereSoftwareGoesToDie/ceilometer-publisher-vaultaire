@@ -308,7 +308,7 @@ def sanitize_timestamp(v):
     return int(time_since_epoch * NANOSECONDS_PER_SECOND)
 
 def canonical_siphash(the_thing):
-    return ceilometer_publisher_vaultaire.siphash.SipHash24("0000000000000000", the_thing).hash()
+    return ceilometer_publisher_vaultaire.siphash.SipHash24("\0"*16, the_thing).hash()
 
 def get_flavor_type(sample):
     flavor_type = None
