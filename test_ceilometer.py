@@ -105,11 +105,11 @@ instance_pollster_json = """
 """
 
 expected_consolidated_instance_pollster_dict = {
-    "counter_name": "instance-m1.small",
+    "metric_name": "instance-m1.small",
     "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
     "resource_id": "70979ae8-abc8-42dd-856e-19016911f615",
     "display_name": "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615",
-    "counter_type": "gauge",
+    "metric_type": "gauge",
     "counter_unit": "instance",
     "_consolidated": "1",
     "_event": "0"
@@ -174,11 +174,11 @@ instance_event_json = """
 """
 
 expected_consolidated_instance_event_dict = {
-    "counter_name": "instance",
+    "metric_name": "instance",
     "project_id": "8ee04b8cfdd94a3cafb16566515af9d5",
     "resource_id": "c5b9cb08-e8be-427e-82b2-56ba6da2da42",
     "display_name": "Tutorial01",
-    "counter_type": "gauge",
+    "metric_type": "gauge",
     "counter_unit": "instance",
     "_consolidated": "1",
     "_event": "1"
@@ -266,8 +266,8 @@ def test_remove_extraneous():
 def test_process_raw():
     process_raw = ceilometer_publisher_vaultaire.process.process_raw
 
-    expectedMiniSd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "_unit": "instance", "display_name": "bob"}
-    expectedEventSd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "_unit": "instance", "display_name": "bob", "event_type": "instance.create.end"}
+    expectedMiniSd = {"project_id": "123", "resource_id": "456", "metric_name": "instance", "metric_type": "gauge", "_unit": "instance", "display_name": "bob"}
+    expectedEventSd = {"project_id": "123", "resource_id": "456", "metric_name": "instance", "metric_type": "gauge", "_unit": "instance", "display_name": "bob", "event_type": "instance.create.end"}
     (addr1, sd1, ts1, p1) = process_raw(copy.copy(parsed_mini_json))
     (addr2, sd2, ts2, p2) = process_raw(copy.copy(parsed_event_json))
     assert sd1 == expectedMiniSd
@@ -283,7 +283,7 @@ def test_consolidate_instance_flavor():
 
     parsed_mini_json = json.loads(mini_json)
     (_, sd, ts, p) = ceilometer_publisher_vaultaire.consolidate_instance_flavor(parsed_mini_json)
-    expected_sd = {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1", "_event": "0"}
+    expected_sd = {"project_id": "123", "resource_id": "456", "metric_name": "instance", "metric_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1", "_event": "0"}
     assert sd == expected_sd
     assert p == siphash.SipHash24("\0"*16, "13").hash()
     assert ts == 0
@@ -297,7 +297,7 @@ def test_consolidate_instance_event():
 
     parsed_event_json = json.loads(event_json)
     (_, sd, ts, p) = ceilometer_publisher_vaultaire.consolidate_instance_event(parsed_event_json)
-    expected_sd =  {"project_id": "123", "resource_id": "456", "counter_name": "instance", "counter_type": "gauge", "counter_unit": "instance", "_consolidated": "1", "_event": "1", "display_name": "bob"}
+    expected_sd =  {"project_id": "123", "resource_id": "456", "metric_name": "instance", "metric_type": "gauge", "counter_unit": "instance", "_consolidated": "1", "_event": "1", "display_name": "bob"}
     assert sd == expected_sd
     assert p == (1 << 8) + (2 << 16) + (14 << 32)
     assert ts == 0
