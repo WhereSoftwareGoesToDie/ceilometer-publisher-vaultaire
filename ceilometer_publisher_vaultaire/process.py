@@ -20,14 +20,10 @@ RAW_PAYLOAD_IP_ALLOC = 1
 def process_sample(sample):
     processed = []
     consolidated_sample = None
-    try:
-        if "event_type" in sample["resource_metadata"]:
-            consolidated_sample = process_consolidated_event(sample)
-        else:
-            consolidated_sample = process_consolidated_pollster(sample)
-    except Exception:
-        # log here
-        pass
+    if "event_type" in sample["resource_metadata"]:
+        consolidated_sample = process_consolidated_event(sample)
+    else:
+        consolidated_sample = process_consolidated_pollster(sample)
     if consolidated_sample is not None:
         processed.append(consolidated_sample)
     processed.append(process_raw(sample))
@@ -54,7 +50,6 @@ def process_raw(sample):
     # Our payload is the volume (later parsed to
     # "counter_volume" in ceilometer)
     payload = sanitize(sample["volume"])
-
     # Rebuild the sample as a source dict
     sourcedict = dict(sample)
 
@@ -201,9 +196,7 @@ def process_consolidated_event(sample):
         payload = sanitize(sample["volume"])
 
     sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
-
     address = get_address(sample, name, consolidated=True)
-
     return (address, sourcedict, timestamp, payload)
 
 def sanitize(v):
