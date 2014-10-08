@@ -319,7 +319,7 @@ def hash_flavor_id(flavor_id):
     (ceilometer doesn't give us easy access to the guaranteed-integral
     instance_type_id).
     """
-    return ceilometer_publisher_vaultaire.siphash.SipHash24("\0"*16, instance_type).hash()
+    return ceilometer_publisher_vaultaire.siphash.SipHash24("\0"*16, flavor_id).hash()
 
 def get_flavor_type(sample):
     flavor_type = None
