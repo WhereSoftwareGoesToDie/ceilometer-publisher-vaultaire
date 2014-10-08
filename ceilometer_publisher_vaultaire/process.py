@@ -90,7 +90,7 @@ def process_raw(sample):
 def is_event_sample(sample):
     return "event_type" in sample["resource_metadata"]
 
-def build_base_sourcedict(payload, sample, name, consolidated=False):
+def get_base_sourcedict(payload, sample, name, consolidated=False):
     sourcedict = {}
     sourcedict["_event"]        = 1 if is_event_sample(sample) else 0
     sourcedict["_consolidated"] = 1 if consolidated else 0
@@ -147,7 +147,7 @@ def process_consolidated_pollster(sample):
         # else.
         return None
 
-    sourcedict = build_base_sourcedict(payload, sample, name, consolidated=True)
+    sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
 
     # Common elements to all messages are r_id + p_id + counter_(name,
     # type, unit)
@@ -192,15 +192,15 @@ def process_consolidated_event(sample):
 
     # We use the instance_type_id for instance events
     if name.startswith("instance"):
-        payload = construct_payload(metadata["event_type"], metadata.get("message",""), metadata["instance_type_id"])
+        payload = get_consolidated_payload(metadata["event_type"], metadata.get("message",""), metadata["instance_type_id"])
     elif name.startswith("volume.size"):
-        payload = construct_payload(metadata["event_type"], metadata.get("status",""), volume_to_raw_payload(sample["volume"]))
+        payload = get_consolidated_payload(metadata["event_type"], metadata.get("status",""), volume_to_raw_payload(sample["volume"]))
     elif name.startswith("ip.floating"):
-        payload = construct_payload(metadata["event_type"], "", RAW_PAYLOAD_IP_ALLOC)
+        payload = get_consolidated_payload(metadata["event_type"], "", RAW_PAYLOAD_IP_ALLOC)
     else:
         payload = sanitize(sample["volume"])
 
-    sourcedict = build_base_sourcedict(payload, sample, name, consolidated=True)
+    sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
 
     address = get_address(sample, name, consolidated=True)
 
@@ -302,7 +302,7 @@ def get_flavor_type(sample):
     return flavor_type
 
 
-def construct_payload(event_type, message, rawPayload):
+def get_consolidated_payload(event_type, message, rawPayload):
     """
     eventResolution is passed in message, if none is given assumed to be Success
     eventResolution takes up the LSByte
@@ -340,11 +340,11 @@ def construct_payload(event_type, message, rawPayload):
     eventVerb = {"create":1, "update":2, "delete":3, "shutdown":4, "exists":5}.get(verb)
 
     if eventResolution is None:
-        raise Exception("Unsupported message given to eventToByte")
+        raise Exception("Unsupported message given to get_consolidated_payload")
     if eventVerb is None:
-        raise Exception("Unsupported event class given to eventToByte")
+        raise Exception("Unsupported event class given to get_consolidated_payload")
     if eventEndpoint is None:
-        raise Exception("Unsupported event endpoint given to eventToByte")
+        raise Exception("Unsupported event endpoint given to get_consolidated_payload")
 
     return eventResolution + (eventVerb << 8) + (eventEndpoint << 16) + (rawPayload << 32)
 
