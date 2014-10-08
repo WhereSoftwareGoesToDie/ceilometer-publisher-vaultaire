@@ -104,9 +104,9 @@ def get_base_sourcedict(payload, sample, name, consolidated=False):
     sourcedict["_consolidated"] = 1 if consolidated else 0
     sourcedict["project_id"]    = sample["project_id"]
     sourcedict["resource_id"]   = sample["resource_id"]
-    sourcedict["counter_name"]  = name
+    sourcedict["metric_name"]   = name
     sourcedict["counter_unit"]  = sample["unit"]
-    sourcedict["counter_type"]  = sample["type"]
+    sourcedict["metric_type"]   = sample["type"]
     sourcedict["display_name"]  = sample["resource_metadata"].get("display_name", "")
 
     if sample["type"] == "cumulative":
