@@ -124,8 +124,6 @@ def get_address(sample, name, consolidated=False):
     return Marquise.hash_identifier(identifier)
 
 def process_consolidated_pollster(sample):
-    frames = []
-
     # Pull out and clean fields which are always present
     name         = sample["name"]
     project_id   = sample["project_id"]
@@ -198,7 +196,7 @@ def process_consolidated_event(sample):
     elif name.startswith("volume.size"):
         payload = construct_payload(metadata["event_type"], metadata.get("status",""), volume_to_raw_payload(sample["volume"]))
     elif name.startswith("ip.floating"):
-        payload = construct_payload(metadata["event_type"], "", 1)
+        payload = construct_payload(metadata["event_type"], "", RAW_PAYLOAD_IP_ALLOC)
     else:
         payload = sanitize(sample["volume"])
 
