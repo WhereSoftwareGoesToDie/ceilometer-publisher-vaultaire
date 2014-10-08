@@ -123,7 +123,9 @@ def process_consolidated_pollster(sample):
     elif name.startswith("ip.floating"):
         payload = consolidated.RAW_PAYLOAD_IP_ALLOC
     else:
-        payload = sanitize(sample["volume"])
+        # We don't need to write out a consolidated version of anything
+        # else.
+        return None
 
     # Build the source dict
     sourcedict = {}
