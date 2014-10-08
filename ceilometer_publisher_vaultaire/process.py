@@ -129,6 +129,8 @@ def build_base_sourcedict(payload,
     return sourcedict
 
 def process_consolidated_pollster(sample):
+    frames = []
+
     # Pull out and clean fields which are always present
     name         = sample["name"]
     project_id   = sample["project_id"]
@@ -192,11 +194,11 @@ def process_consolidated_event(sample):
 
     # We use the instance_type_id for instance events
     if name.startswith("instance"):
-        payload = consolidated.constructPayload(metadata["event_type"], metadata.get("message",""), metadata["instance_type_id"])
+        payload = consolidated.construct_payload(metadata["event_type"], metadata.get("message",""), metadata["instance_type_id"])
     elif name.startswith("volume.size"):
-        payload = consolidated.constructPayload(metadata["event_type"], metadata.get("status",""), consolidated.volumeToRawPayload(sample["volume"]))
+        payload = consolidated.construct_payload(metadata["event_type"], metadata.get("status",""), consolidated.volumeToRawPayload(sample["volume"]))
     elif name.startswith("ip.floating"):
-        payload = consolidated.constructPayload(metadata["event_type"], "", 1)
+        payload = consolidated.construct_payload(metadata["event_type"], "", 1)
     else:
         payload = sanitize(sample["volume"])
 

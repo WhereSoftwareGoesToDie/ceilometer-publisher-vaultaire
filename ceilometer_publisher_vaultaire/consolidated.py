@@ -16,7 +16,7 @@
 
 RAW_PAYLOAD_IP_ALLOC = 1
 
-def constructPayload(event_type, message, rawPayload):
+def construct_payload(event_type, message, rawPayload):
     """
     eventResolution is passed in message, if none is given assumed to be Success
     eventResolution takes up the LSByte
