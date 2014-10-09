@@ -24,7 +24,6 @@ RAW_PAYLOAD_IP_ALLOC = 1
 
 def process_sample(sample):
     processed = []
-    consolidated_sample = None
     name = sample["name"]
     # We want to do some more processing to these event types...
     if is_event_sample(sample):
@@ -59,8 +58,6 @@ def process_raw(sample):
     """
     event_type = sample["resource_metadata"].get("event_type", None)
     display_name = sample["resource_metadata"].get("display_name", None)
-
-    flavor_type = get_flavor_type(sample)
 
     address = get_address(sample, sample["name"], consolidated=False)
 
@@ -197,7 +194,6 @@ def consolidate_ip_event(sample):
 
 def process_consolidated_event(sample, payload):
     name       = sample["name"]
-    metadata   = sample["resource_metadata"]
     timestamp  = sanitize_timestamp(sample["timestamp"])
     sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
     address    = get_address(sample, name, consolidated=True)
@@ -256,14 +252,6 @@ def hash_flavor_id(flavor_id):
     instance_type_id).
     """
     return ceilometer_publisher_vaultaire.siphash.SipHash24("\0"*16, flavor_id).hash()
-
-def get_flavor_type(sample):
-    flavor_type = None
-    if "flavor" in sample:
-        flavor_type = sample["flavor"].get("name", None)
-    elif "instance_type" in sample:
-        flavor_type = sample["instance_type"]
-    return flavor_type
 
 def get_consolidated_payload(event_type, message, rawPayload):
     """
