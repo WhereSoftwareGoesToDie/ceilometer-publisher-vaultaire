@@ -181,26 +181,26 @@ def get_id_elements(sample, name, consolidated):
     return id_elements
 
 def consolidate_instance_event(sample):
-    metadata     = sample["resource_metadata"]
-    payload = get_consolidated_payload(metadata["event_type"], metadata.get("message",""), metadata["instance_type_id"])
+    metadata = sample["resource_metadata"]
+    payload  = get_consolidated_payload(metadata["event_type"], metadata.get("message",""), metadata["instance_type_id"])
     return process_consolidated_event(sample, payload)
 
 def consolidate_volume_event(sample):
-    metadata     = sample["resource_metadata"]
-    payload = get_consolidated_payload(metadata["event_type"], metadata.get("status",""), sample["volume"])
+    metadata = sample["resource_metadata"]
+    payload  = get_consolidated_payload(metadata["event_type"], metadata.get("status",""), sample["volume"])
     return process_consolidated_event(sample, payload)
 
 def consolidate_ip_event(sample):
-    metadata     = sample["resource_metadata"]
-    payload = get_consolidated_payload(metadata["event_type"], "", RAW_PAYLOAD_IP_ALLOC)
+    metadata = sample["resource_metadata"]
+    payload  = get_consolidated_payload(metadata["event_type"], "", RAW_PAYLOAD_IP_ALLOC)
     return process_consolidated_event(sample, payload)
 
 def process_consolidated_event(sample, payload):
-    name         = sample["name"]
-    metadata     = sample["resource_metadata"]
-    timestamp    = sanitize_timestamp(sample["timestamp"])
+    name       = sample["name"]
+    metadata   = sample["resource_metadata"]
+    timestamp  = sanitize_timestamp(sample["timestamp"])
     sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
-    address = get_address(sample, name, consolidated=True)
+    address    = get_address(sample, name, consolidated=True)
     return (address, sourcedict, timestamp, payload)
 
 def sanitize(v):
