@@ -27,7 +27,7 @@ def process_sample(sample):
     consolidated_sample = None
     name = sample["name"]
     # We want to do some more processing to these event types...
-    if "event_type" in sample["resource_metadata"]:
+    if is_event_sample(sample):
         if name.startswith("instance"):
             processed.append(consolidate_instance_event(sample))
         elif name.startswith("volume.size"):
