@@ -125,9 +125,11 @@ def get_base_sourcedict(payload, sample, name, consolidated=False):
 
 def get_address(sample, name, consolidated=False):
     """
-    get_address returns a unique Vaultaire address calculated from the
-    supplied id_elements, which should be a list of strings considered part
-    of the primary key for the relevant metric.
+    Return a unique Vaultaire address calculated for the metric.
+
+    The address is calculated based on the metric's "id_elements", which
+    are considered to be the list of strings forming the primary key for
+    the relevant metric.
     """
     id_elements = get_id_elements(sample, name, consolidated)
     id_elements = [ str(x) for x in id_elements if x is not None ]
@@ -161,10 +163,7 @@ def consolidate_instance_ram(sample):
     return (address, sourcedict, timestamp, payload)
 
 def get_id_elements(sample, name, consolidated):
-    """
-    get_id_elements returns a list of components uniquely identifying a
-    metric.
-    """
+    """Return a list of components uniquely identifying a metric."""
     id_elements = [
         sample["project_id"],
         sample["resource_id"],
@@ -249,8 +248,7 @@ def sanitize_timestamp(v):
 
 def hash_flavor_id(flavor_id):
     """
-    hash_flavor_id will return the SipHash-2-4 of a string with a null
-    key.
+    Return the SipHash-2-4 of a string, using the null key.
 
     We do this to instance types before we store them because a)
     instance types are strings and b) we can't assume they won't change
