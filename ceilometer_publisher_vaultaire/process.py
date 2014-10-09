@@ -5,7 +5,6 @@ from dateutil.tz import tzutc
 from marquise import Marquise
 
 import ceilometer_publisher_vaultaire.siphash
-import ceilometer_publisher_vaultaire.consolidated as consolidated
 
 KEYS_TO_DELETE = [
     "timestamp",
@@ -14,28 +13,41 @@ KEYS_TO_DELETE = [
     "updated_at",
     "id",
     "size",
+    "resource_metadata",
+    "flavor",
+    "launched_at",
+    "terminated_at",
+    "deleted_at",
 ]
 
-# FIXME: refactor the functions in this module in such a way that they
-# can log.
+RAW_PAYLOAD_IP_ALLOC = 1
 
 def process_sample(sample):
     processed = []
-    consolidated_sample = None
-    try:
-        if "event_type" in sample["resource_metadata"]:
-            consolidated_sample = process_consolidated_event(sample)
-        else:
-            consolidated_sample = process_consolidated_pollster(sample)
-    except Exception:
-        # log here
-        pass
-    if consolidated_sample is not None:
-        processed.append(consolidated_sample)
+    name = sample["name"]
+    # We want to do some more processing to these event types...
+    if is_event_sample(sample):
+        if name.startswith("instance"):
+            processed.append(consolidate_instance_event(sample))
+        elif name.startswith("volume.size"):
+            processed.append(consolidate_volume_event(sample))
+        elif name.startswith("ip.floating"):
+            processed.append(consolidate_ip_event(sample))
+    # ...and this pollster type.
+    elif name.startswith("instance"):
+        processed.append(consolidate_instance_flavor(sample))
+        processed.append(consolidate_instance_ram(sample))
+        processed.append(consolidate_instance_vcpus(sample))
     processed.append(process_raw(sample))
     return processed
 
+# FIXME: we want to make sourcedict inclusion whitelist-based rather
+# than blacklist-based, so we know what we're getting.
 def remove_extraneous(sourcedict):
+    """
+    Remove the keys we will never care about and/or change with each
+    message. This should be the last thing done to a sourcedict.
+    """
     for k in KEYS_TO_DELETE:
         sourcedict.pop(k, None)
 
@@ -45,24 +57,9 @@ def process_raw(sample):
     destructive updates to sample.
     """
     event_type = sample["resource_metadata"].get("event_type", None)
+    display_name = sample["resource_metadata"].get("display_name", None)
 
-    flavor_type = get_flavor_type(sample)
-
-    id_elements = [
-        sample["resource_id"],
-        sample["project_id"],
-        sample["name"],
-        sample["unit"],
-        event_type,
-        flavor_type,
-    ]
-
-    # Filter out Nones and stringify everything so we don't get TypeErrors on concatenation
-    id_elements = [ str(x) for x in id_elements if x is not None ]
-
-    # Generate the unique identifer for the sample
-    identifier = "".join(id_elements)
-    address = Marquise.hash_identifier(identifier)
+    address = get_address(sample, sample["name"], consolidated=False)
 
     # Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
     timestamp = sanitize_timestamp(sample["timestamp"])
@@ -70,7 +67,6 @@ def process_raw(sample):
     # Our payload is the volume (later parsed to
     # "counter_volume" in ceilometer)
     payload = sanitize(sample["volume"])
-
     # Rebuild the sample as a source dict
     sourcedict = dict(sample)
 
@@ -85,151 +81,122 @@ def process_raw(sample):
     if sourcedict["type"] == "cumulative":
         sourcedict["_counter"] = 1
 
-    # Cast Identifier sections with unique names, in case of
-    # metadata overlap
+    if display_name is not None:
+        sourcedict["display_name"] = display_name
+    if event_type is not None:
+        sourcedict["event_type"] = event_type
 
-    # XXX: why do we call these counter_* even when they're
-    # not counters?
-    sourcedict["counter_name"] = sanitize(sourcedict.pop("name"))
-    sourcedict["counter_type"] = sanitize(sourcedict.pop("type"))
+    sourcedict["metric_name"] = sanitize(sourcedict.pop("name"))
+    sourcedict["metric_type"] = sanitize(sourcedict.pop("type"))
 
     remove_extraneous(sourcedict)
 
-    # Remove the original resource_metadata and substitute
-    # our own flattened version
-    sourcedict.update(flatten(sourcedict.pop("resource_metadata")))
-    sourcedict = flatten(sourcedict)
     for k, v in sourcedict.items():
         sourcedict[k] = sanitize(str(v))
     return (address, sourcedict, timestamp, payload)
 
-def process_consolidated_pollster(sample):
-    # Pull out and clean fields which are always present
-    name         = sample["name"]
-    project_id   = sample["project_id"]
-    resource_id  = sample["resource_id"]
-    metadata     = sample["resource_metadata"]
-    ## Cast unit as a special metadata type
-    counter_unit = sample["unit"]
-    counter_type = sample["type"]
-    ## Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
-    timestamp    = sanitize_timestamp(sample["timestamp"])
+def is_event_sample(sample):
+    return "event_type" in sample["resource_metadata"]
 
-    # We use a siphash of the instance_type for instance pollsters
-    if name.startswith("instance"):
-        payload = canonical_siphash(metadata["instance_type"])
-    elif name.startswith("volume.size"):
-        payload = consolidated.volumeToRawPayload(sanitize(sample["volume"]))
-    elif name.startswith("ip.floating"):
-        payload = consolidated.RAW_PAYLOAD_IP_ALLOC
-    else:
-        payload = sanitize(sample["volume"])
-
-    # Build the source dict
+def get_base_sourcedict(payload, sample, name, consolidated=False):
     sourcedict = {}
-    sourcedict["_event"]        = 0
-    sourcedict["_consolidated"] = 1
-    sourcedict["project_id"]    = project_id
-    sourcedict["resource_id"]   = resource_id
-    sourcedict["counter_name"]  = name
-    sourcedict["counter_unit"]  = counter_unit
-    sourcedict["counter_type"]  = counter_type
-    sourcedict["display_name"]  = metadata.get("display_name", "")
-    # Vaultaire does not care about the datatype of the payload, so we
-    # need to specify it in metadata.
+    sourcedict["_event"]        = 1 if is_event_sample(sample) else 0
+    sourcedict["_consolidated"] = 1 if consolidated else 0
+    sourcedict["project_id"]    = sample["project_id"]
+    sourcedict["resource_id"]   = sample["resource_id"]
+    sourcedict["metric_name"]   = name
+    sourcedict["counter_unit"]  = sample["unit"]
+    sourcedict["metric_type"]   = sample["type"]
+    sourcedict["display_name"]  = sample["resource_metadata"].get("display_name", "")
+
+    if sample["type"] == "cumulative":
+        sourcedict["_counter"] = 1
+
     if type(payload) == float:
         sourcedict["_float"] = 1
-
-    # If it's a cumulative value, this needs to go in the metadata as
-    # well.
-    if counter_type == "cumulative":
-        sourcedict["_counter"] = 1
 
     for k, v in sourcedict.items():
         sourcedict[k] = sanitize(str(v))
 
-    # Common elements to all messages are r_id + p_id + counter_(name,
-    # type, unit)
-    id_elements = [
-        resource_id,
-        project_id,
-        name,
-        counter_type,
-        counter_unit,
-        "_consolidated",
-    ]
+    return sourcedict
 
-    # Filter out Nones and stringify everything so we don't get
-    # TypeErrors on concatenation
+def get_address(sample, name, consolidated=False):
+    """
+    Return a unique Vaultaire address calculated for the metric.
+
+    The address is calculated based on the metric's "id_elements", which
+    are considered to be the list of strings forming the primary key for
+    the relevant metric.
+    """
+    id_elements = get_id_elements(sample, name, consolidated)
     id_elements = [ str(x) for x in id_elements if x is not None ]
-
-    # Generate the unique identifer for the sample
     identifier = "".join(id_elements)
-    address = Marquise.hash_identifier(identifier)
+    return Marquise.hash_identifier(identifier)
+
+def consolidate_instance_flavor(sample):
+    name = "instance_flavor"
+    payload = hash_flavor_id(sample["resource_metadata"]["instance_type"])
+    timestamp = sanitize_timestamp(sample["timestamp"])
+    sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
+    address = get_address(sample, name, consolidated=True)
     return (address, sourcedict, timestamp, payload)
 
-def process_consolidated_event(sample):
-    # Pull out and clean fields which are always present
-    name         = sample["name"]
-    project_id   = sample["project_id"]
-    resource_id  = sample["resource_id"]
-    metadata     = sample["resource_metadata"]
-    ## Cast unit as a special metadata type
-    counter_unit = sample["unit"]
-    counter_type = sample["type"]
-    ## Sanitize timestamp (will parse timestamp to nanoseconds since epoch)
-    timestamp    = sanitize_timestamp(sample["timestamp"])
+# FIXME: tests
+def consolidate_instance_vcpus(sample):
+    name = "instance_vcpus"
+    payload = sample["resource_metadata"]["flavor"]["vcpus"]
+    timestamp = sanitize_timestamp(sample["timestamp"])
+    sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
+    address = get_address(sample, name, consolidated=True)
+    return (address, sourcedict, timestamp, payload)
 
-    # We use the instance_type_id for instance events
-    if name.startswith("instance"):
-        payload = consolidated.constructPayload(metadata["event_type"], metadata.get("message",""), metadata["instance_type_id"])
-    elif name.startswith("volume.size"):
-        payload = consolidated.constructPayload(metadata["event_type"], metadata.get("status",""), consolidated.volumeToRawPayload(sample["volume"]))
-    elif name.startswith("ip.floating"):
-        payload = consolidated.constructPayload(metadata["event_type"], "", 1)
-    else:
-        payload = sanitize(sample["volume"])
+# FIXME: tests
+def consolidate_instance_ram(sample):
+    name = "instance_ram"
+    payload = sample["resource_metadata"]["flavor"]["ram"]
+    timestamp = sanitize_timestamp(sample["timestamp"])
+    sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
+    address = get_address(sample, name, consolidated=True)
+    return (address, sourcedict, timestamp, payload)
 
-    # Build the source dict
-    sourcedict = {}
-    sourcedict["_event"]        = 1
-    sourcedict["_consolidated"] = 1
-    sourcedict["project_id"]    = project_id
-    sourcedict["resource_id"]   = resource_id
-    sourcedict["counter_name"]  = name
-    sourcedict["counter_unit"]  = counter_unit
-    sourcedict["counter_type"]  = counter_type
-    sourcedict["display_name"]  = metadata.get("display_name", "")
-    ## Vaultaire cares about the datatype of the payload
-    if type(payload) == float:
-        sourcedict["_float"] = 1
-
-    ## If it's a cumulative value, we need to tell vaultaire
-    if counter_type == "cumulative":
-        sourcedict["_counter"] = 1
-
-    for k, v in sourcedict.items():
-        sourcedict[k] = sanitize(str(v))
-
-    # Common elements to all messages are r_id + p_id + counter_(name,
-    # type, unit)
+def get_id_elements(sample, name, consolidated):
+    """Return a list of components uniquely identifying a metric."""
     id_elements = [
-        resource_id,
-        project_id,
+        sample["project_id"],
+        sample["resource_id"],
+        sample["unit"],
+        sample["type"],
         name,
-        counter_type,
-        counter_unit,
-        "_event",
-        "_consolidated",
     ]
+    if consolidated:
+        id_elements.append("_consolidated")
+    # If this is an event sample, the event type is always part of the
+    # identifier (as is the fact that it is an event).
+    if is_event_sample(sample):
+        id_elements.append("_event")
+        id_elements.append(sample["resource_metadata"]["event_type"])
+    return id_elements
 
-    # Filter out Nones and stringify everything so we don't get
-    # TypeErrors on concatenation
-    id_elements = [ str(x) for x in id_elements if x is not None ]
+def consolidate_instance_event(sample):
+    metadata = sample["resource_metadata"]
+    payload  = get_consolidated_payload(metadata["event_type"], metadata.get("message",""), metadata["instance_type_id"])
+    return process_consolidated_event(sample, payload)
 
-    # Generate the unique identifer for the sample
-    identifier = "".join(id_elements)
-    address = Marquise.hash_identifier(identifier)
+def consolidate_volume_event(sample):
+    metadata = sample["resource_metadata"]
+    payload  = get_consolidated_payload(metadata["event_type"], metadata.get("status",""), sample["volume"])
+    return process_consolidated_event(sample, payload)
+
+def consolidate_ip_event(sample):
+    metadata = sample["resource_metadata"]
+    payload  = get_consolidated_payload(metadata["event_type"], "", RAW_PAYLOAD_IP_ALLOC)
+    return process_consolidated_event(sample, payload)
+
+def process_consolidated_event(sample, payload):
+    name       = sample["name"]
+    timestamp  = sanitize_timestamp(sample["timestamp"])
+    sourcedict = get_base_sourcedict(payload, sample, name, consolidated=True)
+    address    = get_address(sample, name, consolidated=True)
     return (address, sourcedict, timestamp, payload)
 
 def sanitize(v):
@@ -250,38 +217,6 @@ def sanitize(v):
         v = v.replace(":","-")
         v = v.replace(",","-")
     return v
-
-def flatten(n, prefix=""):
-    """Take a (potentially) nested dictionary and flatten it into a single
-    level. Also remove any keys/values that Marquise/Vaultaire can't handle.
-    """
-    flattened_dict = {}
-    for k,v in n.items():
-        k = sanitize(k)
-
-        # Vaultaire doesn't care about generated URLs for Ceilometer
-        # API references.
-        if str(k) == "links":
-            continue
-        if str(k).endswith('_url'):
-            continue
-
-        # Vaultaire doesn't want values if they have no contents.
-        if v is None:
-            continue
-
-        # If key has a parent, concatenate it into the new keyname.
-        if prefix != "":
-            k = "{}-{}".format(prefix,k)
-
-        # This was previously a check for __iter__, but strings have those now,
-        # so let's just check for dict-ness instead. No good on lists anyway.
-        if type(v) is not dict:
-            v = sanitize(v)
-            flattened_dict[k] = v
-        else:
-            flattened_dict.update(flatten(v, k))
-    return flattened_dict
 
 def sanitize_timestamp(v):
     """Convert a timestamp value into a standard form. Does no exception
@@ -307,13 +242,60 @@ def sanitize_timestamp(v):
     time_since_epoch = (timestamp - epoch).total_seconds() # total_seconds() is in Py2.7 and later.
     return int(time_since_epoch * NANOSECONDS_PER_SECOND)
 
-def canonical_siphash(the_thing):
-    return ceilometer_publisher_vaultaire.siphash.SipHash24("0000000000000000", the_thing).hash()
+def hash_flavor_id(flavor_id):
+    """
+    Return the SipHash-2-4 of a string, using the null key.
 
-def get_flavor_type(sample):
-    flavor_type = None
-    if "flavor" in sample:
-        flavor_type = sample["flavor"].get("name", None)
-    elif "instance_type" in sample:
-        flavor_type = sample["instance_type"]
-    return flavor_type
+    We do this to instance types before we store them because a)
+    instance types are strings and b) we can't assume they won't change
+    (ceilometer doesn't give us easy access to the guaranteed-integral
+    instance_type_id).
+    """
+    return ceilometer_publisher_vaultaire.siphash.SipHash24("\0"*16, flavor_id).hash()
+
+def get_consolidated_payload(event_type, message, rawPayload):
+    """
+    eventResolution is passed in message, if none is given assumed to be Success
+    eventResolution takes up the LSByte
+    eventVerb is the action of the event, e.g. create, delete, shutdown, etc.
+    eventVerb takes up the 2nd LSByte
+    eventEndpoint defines whether the data represents an event start, end or an
+    instance event.
+    eventVerb takes up the 3rd LSByte
+    rawPayload takes up the 4 MSBytes (32 bits)
+    rawPayload is specific on counter
+    Start events are even, end are odd (LSB)
+    Other 7 bits for create, update, end, and any future additions
+    """
+
+    # If no event endpoint is included, assume instantaneous event (e.g. image deletion)
+    eventEndpoint = 0
+
+    if message.lower() == "success":
+        eventResolution = 0
+    # Empty message implies success
+    elif message == "":
+        eventResolution = 0
+    elif message.lower() == "failure":
+        eventResolution = 1
+    elif message.lower() == "error":
+        eventResolution = 2
+
+    rest,maybeVerb = event_type.rsplit('.', 1)
+    maybeVerb = maybeVerb.lower()
+    if maybeVerb in ("start", "end"):
+        eventEndpoint = {"start":1, "end":2}.get(maybeVerb)
+        _,verb = rest.rsplit('.', 1)
+    else:
+        verb = maybeVerb
+
+    eventVerb = {"create":1, "update":2, "delete":3, "shutdown":4, "exists":5}.get(verb)
+
+    if eventResolution is None:
+        raise Exception("Unsupported message given to get_consolidated_payload")
+    if eventVerb is None:
+        raise Exception("Unsupported event class given to get_consolidated_payload")
+    if eventEndpoint is None:
+        raise Exception("Unsupported event endpoint given to get_consolidated_payload")
+
+    return eventResolution + (eventVerb << 8) + (eventEndpoint << 16) + (rawPayload << 32)
