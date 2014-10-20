@@ -12,7 +12,7 @@ def process_sample(sample):
     processed = []
     name = sample["name"]
     # We want to do some more processing to these event types...
-    if name.startswith("instance") and not is_event_sample(sample):
+    if name == "instance" and not is_event_sample(sample):
         processed.append(consolidate_instance_flavor(sample))
         processed.append(consolidate_instance_ram(sample))
         processed.append(consolidate_instance_vcpus(sample))
