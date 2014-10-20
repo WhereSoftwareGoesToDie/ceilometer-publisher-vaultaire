@@ -75,7 +75,7 @@ IPv4 Address Allocations - Neutron - Event - CHECK
 
 Instance, Instance Disk, Instance VCPU, Instance Memory Allocations - Nova - Pollster - CHECK
     Match on:       
-        sample["name"] == "instance"
+        sample["name"].startswith("instance")
 
     Output:
     |-> Instance Disk Allocation
