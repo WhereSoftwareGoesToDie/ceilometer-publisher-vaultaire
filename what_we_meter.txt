@@ -1,4 +1,4 @@
-Core:
+Core Attributes:
 
     metric_type = sample["type"]
     metric_unit = sample["unit"]
@@ -36,7 +36,6 @@ Disk I/O - Nova - Pollster - CHECK
         metric_name = "disk.write.bytes"
         metric_name = "disk.read.bytes"
 
-
 Neutron Traffic - Nova - Pollster - CHECK
 
     (No Special Requirements)
@@ -53,11 +52,12 @@ Neutron Traffic - Nova - Pollster - CHECK
 
 IPv4 Address Allocations - Neutron - Event - CHECK
 
-    (Needs Special Crack)
+    (Uses Compound Consolidated Points)
     Event Types:
         floatingip.create.end
         floatingip.update.end
-        #should probably be starts too
+        # floating.*.start notifications have not been observed
+        # but are theoretically possible
 
     Match on:
         sample["name"] = "ip.floating"
@@ -70,8 +70,6 @@ IPv4 Address Allocations - Neutron - Event - CHECK
         endpoint = split_event_type[2] # start/end NOTE: Only end has been observed as per Event Types section
         status = sample["resource_metadata"]["status"] # ACTIVE/DOWN
         payload = consolidate_volume(raw_payload, verb, endpoint, status)
-
-
 
 Instance, Instance Disk, Instance VCPU, Instance Memory Allocations - Nova - Pollster - CHECK
     Match on:       
@@ -99,10 +97,9 @@ Instance, Instance Disk, Instance VCPU, Instance Memory Allocations - Nova - Pol
         metric_name = "instance_flavor"
         payload = siphash(sample["resource_metadata"]["instance_type"])
 
-
 Volume - Cinder - Notification - CHECK
 
-    (Potentially Special Crack)
+    (Uses Compound Consolidated Points)
     Event Types:
         volume.create.end
         volume.create.start
@@ -124,4 +121,3 @@ Volume - Cinder - Notification - CHECK
         endpoint = split_event_type[2] # start/end
         status = sample["resource_metadata"]["status"] # available/creating/deleting/extending
         payload = consolidate_volume(raw_payload, verb, endpoint, status)
-

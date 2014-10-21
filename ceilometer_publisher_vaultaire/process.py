@@ -1,3 +1,9 @@
+"""
+The core module for processing ceilometer samples for use with
+vaultaire and marquise. process_sample is the core function
+which should be used from this module
+"""
+
 import datetime
 from dateutil.parser import parse
 from dateutil.tz import tzutc
@@ -9,6 +15,13 @@ import ceilometer_publisher_vaultaire.siphash
 ### Top Level
 
 def process_sample(sample):
+    """
+    Given a ceilometer sample as a dict, processes into a list of
+    (address, sourcedict, timestamp, payload) 4-tuples
+    For instance pollsters this will be a list of 4 items, one each
+    for flavor, ram, vcpus and disk. For all other supported metrics
+    process_sample will return a singleton list.
+    """
     processed = []
     name = sample["name"]
     # We want to do some more processing to these event types...
@@ -18,13 +31,13 @@ def process_sample(sample):
         processed.append(consolidate_instance_vcpus(sample))
         processed.append(consolidate_instance_disk(sample))
     elif name == "cpu" and not is_event_sample(sample):
-        processed.append(consolidate_cpu(sample))
+        processed.append(process_base_pollster(sample))
     elif (name == "disk.write.bytes" or name == "disk.read.bytes") \
             and not is_event_sample(sample):
-        processed.append(consolidate_diskio(sample))
+        processed.append(process_base_pollster(sample))
     elif (name == "network.incoming.bytes" or name == "network.outgoing.bytes") \
             and not is_event_sample(sample):
-        processed.append(consolidate_network(sample))
+        processed.append(process_base_pollster(sample))
     elif name == "ip.floating" and is_event_sample(sample):
         processed.append(consolidate_ip_event(sample))
     elif name == "volume.size" and is_event_sample(sample):
@@ -34,9 +47,11 @@ def process_sample(sample):
 ### Common Generation
 
 def is_event_sample(sample):
+    """Returns true given an event sample, false given a pollster sample"""
     return "event_type" in sample["resource_metadata"]
 
 def get_base_sourcedict(payload, sample, name):
+    """Generates a sourcedict from the given payload, sample and name"""
     sourcedict = {}
     sourcedict["_event"]        = 1 if is_event_sample(sample) else 0
     sourcedict["_consolidated"] = 1
@@ -107,28 +122,26 @@ def process_base_pollster(sample):
     (address, sourcedict, timestamp) = get_core_triple(payload, sample, name)
     return (address, sourcedict, timestamp, payload)
 
-def consolidate_cpu(sample):
-    return process_base_pollster(sample)
-
-def consolidate_diskio(sample):
-    return process_base_pollster(sample)
-
-def consolidate_network(sample):
-    return process_base_pollster(sample)
-
 def consolidate_instance_vcpus(sample):
+    """Produces a vcpu 4-tuple from an instance pollster sample"""
     name = "instance_vcpus"
     payload = sample["resource_metadata"]["flavor"]["vcpus"]
     (address, sourcedict, timestamp) = get_core_triple(payload, sample, name)
     return (address, sourcedict, timestamp, payload)
 
 def consolidate_instance_ram(sample):
+    """Produces a ram 4-tuple from an instance pollster sample"""
     name = "instance_ram"
     payload = sample["resource_metadata"]["flavor"]["ram"]
     (address, sourcedict, timestamp) = get_core_triple(payload, sample, name)
     return (address, sourcedict, timestamp, payload)
 
 def consolidate_instance_disk(sample):
+    """
+    Produces a disk 4-tuple from an instance pollster sample
+    Disk is split up into root (disk) and ephemeral on openstack
+    So we sum them to get the total value
+    """
     name = "instance_disk"
     payload = sample["resource_metadata"]["flavor"]["disk"] + \
               sample["resource_metadata"]["flavor"]["ephemeral"]
@@ -136,20 +149,21 @@ def consolidate_instance_disk(sample):
     return (address, sourcedict, timestamp, payload)
 
 def consolidate_instance_flavor(sample):
+    """
+    Produces an instance_flavor 4-tuple from an instance pollster sample
+    Uses the SipHash-2-4 using the null key of the "instance_type" field
+    in the resource_metadata of the sample. We do this  because:
+    a) instance_types are strings and
+    b) we can't assume they won't change (ceilometer doesn't give us easy
+    access to the guaranteed-integral instance_type_id).
+    """
     name = "instance_flavor"
     payload = hash_flavor_id(sample["resource_metadata"]["instance_type"])
     (address, sourcedict, timestamp) = get_core_triple(payload, sample, name)
     return (address, sourcedict, timestamp, payload)
 
 def hash_flavor_id(flavor_id):
-    """
-    Return the SipHash-2-4 of a string, using the null key.
-
-    We do this to instance types before we store them because a)
-    instance types are strings and b) we can't assume they won't change
-    (ceilometer doesn't give us easy access to the guaranteed-integral
-    instance_type_id).
-    """
+    """Return the SipHash-2-4 of a string, using the null key."""
     return ceilometer_publisher_vaultaire.siphash.SipHash24("\0"*16, flavor_id).hash()
 
 ### Consolidated Events
@@ -157,18 +171,21 @@ def hash_flavor_id(flavor_id):
 RAW_PAYLOAD_IP_ALLOC = 1
 
 def consolidate_volume_event(sample):
+    """Produces a volume 4-tuple from a volume.size event sample"""
     name = "volume.size"
     payload  = get_volume_payload(sample)
     (address, sourcedict, timestamp) = get_core_triple(payload, sample, name)
     return (address, sourcedict, timestamp, payload)
 
 def consolidate_ip_event(sample):
+    """Produces an ip allocation 4-tuple from an ip.floating event sample"""
     name = "ip.floating"
     payload = get_ip_payload(sample)
     (address, sourcedict, timestamp) = get_core_triple(payload, sample, name)
     return (address, sourcedict, timestamp, payload)
 
 def get_volume_payload(sample):
+    """Returns the volume compound consolidated payload for the given sample"""
     split_event_type = sample["resource_metadata"]["event_type"].split('.')
     status = sample["resource_metadata"]["status"]
     verb = split_event_type[1]
@@ -206,6 +223,7 @@ def get_volume_payload(sample):
     return construct_consolidated_event_payload(status_value, verb_value, endpoint_value, raw_payload)
 
 def get_ip_payload(sample):
+    """Returns the ip allocation compound consolidated payload for the given sample"""
     split_event_type = sample["resource_metadata"]["event_type"].split('.')
     status = sample["resource_metadata"]["status"]
     verb = split_event_type[1]
@@ -236,6 +254,16 @@ def get_ip_payload(sample):
     return construct_consolidated_event_payload(status_value, verb_value, endpoint_value, raw_payload)
 
 def construct_consolidated_event_payload(status_value, verb_value, endpoint_value, raw_payload):
+    """
+    Constructs an 8 byte compound consolidated payload from the raw payload and
+    then given enum values for status, verb and endpoint
+    Format from least significant to most significant bytes:
+    Byte    0: Status
+    Byte    1: Verb
+    Byte    2: Endpoint
+    Byte    3: Reserved
+    Bytes 4-7: Raw Payload
+    """
     return status_value + (verb_value << 8) + (endpoint_value << 16) + (raw_payload << 32)
 
 ### Sanitization
@@ -270,7 +298,7 @@ def sanitize_timestamp(v):
     # Eg. 2014-08-10T12:14:13Z      # timezone-aware
     # Eg. 2014-08-10 12:14:13       # timezone-naive
     # Eg. 2014-08-10 12:14:13+1000  # timezone-aware
-    NANOSECONDS_PER_SECOND = 10**9
+    NANOSECONDS_PER_MICROSECOND = 10**3
     if type(v) is datetime.datetime:
         timestamp = v
     else: # We have a string.
@@ -280,9 +308,6 @@ def sanitize_timestamp(v):
     # If we get here, we've successfully grabbed a datetime.
     # FIXME: use strftime
     epoch = datetime.datetime(1970, 1, 1, tzinfo=tzutc())
-    time_since_epoch = (timestamp - epoch).total_seconds() # total_seconds() is in Py2.7 and later.
-    return int(time_since_epoch * NANOSECONDS_PER_SECOND)
-
-
-
-
+    td = timestamp - epoch
+    micro_since_epoch = td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6
+    return int(micro_since_epoch * NANOSECONDS_PER_MICROSECOND)
