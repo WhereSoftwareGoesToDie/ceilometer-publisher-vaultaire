@@ -127,6 +127,7 @@ def consolidate_instance_vcpus(sample):
     name = "instance_vcpus"
     payload = sample["resource_metadata"]["flavor"]["vcpus"]
     (address, sourcedict, timestamp) = get_core_triple(payload, sample, name)
+    sourcedict["metric_unit"] = "vcpu"
     return (address, sourcedict, timestamp, payload)
 
 def consolidate_instance_ram(sample):
@@ -134,6 +135,7 @@ def consolidate_instance_ram(sample):
     name = "instance_ram"
     payload = sample["resource_metadata"]["flavor"]["ram"]
     (address, sourcedict, timestamp) = get_core_triple(payload, sample, name)
+    sourcedict["metric_unit"] = "MB"
     return (address, sourcedict, timestamp, payload)
 
 def consolidate_instance_disk(sample):
@@ -146,6 +148,7 @@ def consolidate_instance_disk(sample):
     payload = sample["resource_metadata"]["flavor"]["disk"] + \
               sample["resource_metadata"]["flavor"]["ephemeral"]
     (address, sourcedict, timestamp) = get_core_triple(payload, sample, name)
+    sourcedict["metric_unit"] = "GB"
     return (address, sourcedict, timestamp, payload)
 
 def consolidate_instance_flavor(sample):
