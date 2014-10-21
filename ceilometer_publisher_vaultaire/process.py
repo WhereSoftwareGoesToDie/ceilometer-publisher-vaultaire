@@ -43,7 +43,7 @@ def get_base_sourcedict(payload, sample, name):
     sourcedict["project_id"]    = sample["project_id"]
     sourcedict["resource_id"]   = sample["resource_id"]
     sourcedict["metric_name"]   = name
-    sourcedict["counter_unit"]  = sample["unit"]
+    sourcedict["metric_unit"]   = sample["unit"]
     sourcedict["metric_type"]   = sample["type"]
     sourcedict["display_name"]  = sample["resource_metadata"].get("display_name", "")
 
