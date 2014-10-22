@@ -9,55 +9,93 @@ import ceilometer_publisher_vaultaire.siphash as siphash
 
 PP = pprint.pprint
 PF = pprint.pformat
-
-# This allows OrderedDicts to be pretty-printed (at least somewhat prettier).
-def ODprint(x):
-    return "\n\t".join( ["{"] + [ "{}: {}".format(k,v) for (k,v) in x.iteritems() ] + ["}\n"] )
-OD.__repr__ = ODprint
-
-
-# This sample is arbitrarily trimmed down and is probably missing keys.
-sample_json = """
-                {
-                    "id": "a994b3b8-21c6-11e4-8d23-a60a09774fec",
-                    "name": "disk.read.requests",
-                    "project_id": "78e2fc2a70314713b9f814ec634b5e10",
-                    "resource_id": "cda0c65e-0fc6-4810-89d6-b5c78745f12d",
-                    "resource_metadata": {
-                        "display_name": "bar2",
-                        "flavor": {
-                            "disk": 0,
-                            "ephemeral": 0,
-                            "id": "42",
-                            "links": [
-                                {
-                                    "href": "http://192.168.42.114:8774/0632438bb4a748218b43ed9223b39f77/flavors/42",
-                                    "rel": "bookmark"
-                                }
-                            ],
-                            "name": "m1.nano",
-                            "ram": 64,
-                            "vcpus": 1
-                        },
-                        "host": "2a83dab20754db95ed7cf5a02ee0056d9d0f3d033215eb634403c533",
-                        "instance_type": "42",
-                        "memory_mb": 64,
-                        "name": "instance-00000002",
-                        "status": "active",
-                        "vcpus": 1
-                    },
-                    "timestamp": "2014-08-12T02:16:26Z",
-                    "type": "cumulative",
-                    "unit": "request",
-                    "user_id": "8288e6719e8c4b6a8b130ae77af7abbc",
-                    "volume": 332
-                }
+volume_json = """
+{
+    "id": "3137baa6-486c-11e4-b39f-525400f01ec9",
+    "name": "volume.size",
+    "project_id": "aaaf752c50804cf3aad71b92e6ced65e",
+    "resource_id": "6b116a55-2716-4406-9304-0080e3a5c608",
+    "resource_metadata": {
+        "availability_zone": "syd1",
+        "created_at": "2014-09-22 07:31:41",
+        "display_name": "Worpress0Snapshot3",
+        "event_type": "volume.create.start",
+        "host": "volume.a002.cinder.syd1.prod.os.anchor.net.au@block",
+        "launched_at": "",
+        "size": 10,
+        "snapshot_id": "3e4cb913-6348-4c47-a8de-7af3a75099c0",
+        "status": "creating",
+        "tenant_id": "aaaf752c50804cf3aad71b92e6ced65e",
+        "user_id": "d23fdb56933e41b58d2edebb57c1e8a6",
+        "volume_id": "6b116a55-2716-4406-9304-0080e3a5c608",
+        "volume_type": "7a522201-7c27-4eaa-9d95-d70cfaaeb16a"
+    },
+    "source": "openstack",
+    "timestamp": "2014-09-22 07:31:41.378773",
+    "type": "gauge",
+    "unit": "GB",
+    "user_id": "d23fdb56933e41b58d2edebb57c1e8a6",
+    "volume": 10
+}
 """
+
+expected_volume_payload = 2 + (1 << 8) + (1 << 16) + (10 << 32)
+expected_volume_timestamp = 1411371101378773000
+expected_volume_sd = {
+    "_event": "1",
+    "_consolidated": "1",
+    "project_id": "aaaf752c50804cf3aad71b92e6ced65e",
+    "resource_id": "6b116a55-2716-4406-9304-0080e3a5c608",
+    "metric_name": "volume.size",
+    "metric_unit": "GB",
+    "metric_type": "gauge",
+    "display_name": "Worpress0Snapshot3"
+}
+
+ip_json = """
+{
+    "id": "31a00552-486c-11e4-b39f-525400f01ec9",
+    "name": "ip.floating",
+    "project_id": "aaaf752c50804cf3aad71b92e6ced65e",
+    "resource_id": "d1d96a82-c1ce-4feb-acc1-227a50be9b9f",
+    "resource_metadata": {
+        "event_type": "floatingip.create.end",
+        "fixed_ip_address": null,
+        "floating_ip_address": "110.173.152.166",
+        "floating_network_id": "3e7c812b-7e44-4255-9db0-8bfac34cf4b7",
+        "host": "network.a001.api.syd1.prod.os.anchor.net.au",
+        "id": "d1d96a82-c1ce-4feb-acc1-227a50be9b9f",
+        "port_id": null,
+        "router_id": null,
+        "status": "DOWN",
+        "tenant_id": "aaaf752c50804cf3aad71b92e6ced65e"
+    },
+    "source": "openstack",
+    "timestamp": "2014-09-22 07:35:03.030569",
+    "type": "gauge",
+    "unit": "ip",
+    "user_id": "d23fdb56933e41b58d2edebb57c1e8a6",
+    "volume": 1
+}
+"""
+
+expected_ip_payload = 2 + (1 << 8) + (2 << 16) + (1 << 32)
+expected_ip_timestamp = 1411371303030569000
+expected_ip_sd = {
+    "_event": "1",
+    "_consolidated": "1",
+    "project_id": "aaaf752c50804cf3aad71b92e6ced65e",
+    "resource_id": "d1d96a82-c1ce-4feb-acc1-227a50be9b9f",
+    "metric_name": "ip.floating",
+    "metric_unit": "ip",
+    "metric_type": "gauge",
+    "display_name": ""
+}
 
 instance_pollster_json = """
 {
     "id": "90b350ac-4a07-11e4-a84e-ecf4bbc1fce4",
-    "name": "instance:m1.small",
+    "name": "instance",
     "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
     "resource_id": "70979ae8-abc8-42dd-856e-19016911f615",
     "resource_metadata": {
@@ -100,214 +138,451 @@ instance_pollster_json = """
 }
 """
 
-expected_consolidated_instance_pollster_dict = {
+expected_instance_timestamp = 1412235708000000000
+
+expected_instance_flavor_payload = siphash.SipHash24("\0"*16, "2").hash()
+expected_instance_flavor_sd = {
     "metric_name": "instance_flavor",
     "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
     "resource_id": "70979ae8-abc8-42dd-856e-19016911f615",
     "display_name": "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615",
     "metric_type": "gauge",
-    "counter_unit": "instance",
+    "metric_unit": "instance",
+    "_consolidated": "1",
+    "_event": "0"
+}
+expected_instance_ram_payload = 2048
+expected_instance_ram_sd = {
+    "metric_name": "instance_ram",
+    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
+    "resource_id": "70979ae8-abc8-42dd-856e-19016911f615",
+    "display_name": "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615",
+    "metric_type": "gauge",
+    "metric_unit": "MB",
+    "_consolidated": "1",
+    "_event": "0"
+}
+expected_instance_vcpus_payload = 1
+expected_instance_vcpus_sd = {
+    "metric_name": "instance_vcpus",
+    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
+    "resource_id": "70979ae8-abc8-42dd-856e-19016911f615",
+    "display_name": "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615",
+    "metric_type": "gauge",
+    "metric_unit": "vcpu",
+    "_consolidated": "1",
+    "_event": "0"
+}
+expected_instance_disk_payload = 20
+expected_instance_disk_sd = {
+    "metric_name": "instance_disk",
+    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
+    "resource_id": "70979ae8-abc8-42dd-856e-19016911f615",
+    "display_name": "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615",
+    "metric_type": "gauge",
+    "metric_unit": "GB",
     "_consolidated": "1",
     "_event": "0"
 }
 
-expected_consolidated_instance_pollster_payload = siphash.SipHash24("\0"*16, "2").hash()
-
-instance_event_json = """
+network_rx_json = """
 {
-    "id": "3d83095a-486c-11e4-b39f-525400f01ec9",
-    "name": "instance",
-    "project_id": "8ee04b8cfdd94a3cafb16566515af9d5",
-    "resource_id": "c5b9cb08-e8be-427e-82b2-56ba6da2da42",
+    "id": "ba37392a-4a93-11e4-b541-ecf4bbc1fce4",
+    "name": "network.incoming.bytes",
+    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
+    "resource_id": "instance-000009fd-d9067afa-c79c-4a37-8181-84f612da2d48-tapad6aebca-fe",
     "resource_metadata": {
-        "access_ip_v4": null,
-        "access_ip_v6": null,
-        "architecture": null,
-        "audit_period_beginning": "2014-09-22 12:00:00",
-        "audit_period_ending": "2014-09-22 13:00:00",
-        "availability_zone": "syd1",
-        "bandwidth": {},
-        "created_at": "2014-09-08T06:10:04.000000",
-        "deleted_at": "",
-        "disk_gb": 1,
-        "display_name": "Tutorial01",
+        "fref": null,
+        "instance_id": "d9067afa-c79c-4a37-8181-84f612da2d48",
+        "instance_type": "2",
+        "mac": "fa:16:3e:ca:15:d7",
+        "name": "tapad6aebca-fe",
+        "parameters": {}
+    },
+    "source": "openstack",
+    "timestamp": "2014-10-03T00:25:07Z",
+    "type": "cumulative",
+    "unit": "B",
+    "user_id": "1f6f57489d404fe293c65d19e9b31df2",
+    "volume": 58832
+}
+"""
+expected_network_rx_payload = 58832
+expected_network_rx_timestamp = 1412295907000000000
+expected_network_rx_sd = {
+    "metric_name": "network.incoming.bytes",
+    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
+    "resource_id": "instance-000009fd-d9067afa-c79c-4a37-8181-84f612da2d48-tapad6aebca-fe",
+    "display_name": "",
+    "metric_type": "cumulative",
+    "metric_unit": "B",
+    "_consolidated": "1",
+    "_event": "0",
+    "_counter": "1"
+}
+
+network_tx_json = """
+{
+    "id": "c927a410-4a93-11e4-b541-ecf4bbc1fce4",
+    "name": "network.outgoing.bytes",
+    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
+    "resource_id": "instance-000009fd-d9067afa-c79c-4a37-8181-84f612da2d48-tapad6aebca-fe",
+    "resource_metadata": {
+        "fref": null,
+        "instance_id": "d9067afa-c79c-4a37-8181-84f612da2d48",
+        "instance_type": "2",
+        "mac": "fa:16:3e:ca:15:d7",
+        "name": "tapad6aebca-fe",
+        "parameters": {}
+    },
+    "source": "openstack",
+    "timestamp": "2014-10-03T00:25:32Z",
+    "type": "cumulative",
+    "unit": "B",
+    "user_id": "1f6f57489d404fe293c65d19e9b31df2",
+    "volume": 21816
+}
+"""
+expected_network_tx_payload = 21816
+expected_network_tx_timestamp = 1412295932000000000
+expected_network_tx_sd = {
+    "metric_name": "network.outgoing.bytes",
+    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
+    "resource_id": "instance-000009fd-d9067afa-c79c-4a37-8181-84f612da2d48-tapad6aebca-fe",
+    "display_name": "",
+    "metric_type": "cumulative",
+    "metric_unit": "B",
+    "_consolidated": "1",
+    "_event": "0",
+    "_counter": "1"
+}
+
+disk_write_json = """
+{
+    "id": "d912463c-4a93-11e4-b541-ecf4bbc1fce4",
+    "name": "disk.write.bytes",
+    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
+    "resource_id": "d9067afa-c79c-4a37-8181-84f612da2d48",
+    "resource_metadata": {
+        "OS-EXT-AZ:availability_zone": "syd1",
+        "disk_gb": 20,
+        "display_name": "testcustomer-pe-d9067afa-c79c-4a37-8181-84f612da2d48",
         "ephemeral_gb": 0,
-        "event_type": "compute.instance.exists",
-        "host": "conductor.a001.api.syd1.prod.os.anchor.net.au",
-        "hostname": "tutorial01",
-        "image_meta": {
-            "base_image_ref": "",
-            "description": "Built with diskimage-builder",
-            "min_disk": "1"
+        "flavor": {
+            "disk": 20,
+            "ephemeral": 0,
+            "id": "2",
+            "links": [
+                {
+                    "href": "http://nova.int.syd1.prod.os.anchor.net.au:8774/bd3f518204b54407854a7dd8d1c49931/flavors/2",
+                    "rel": "bookmark"
+                }
+            ],
+            "name": "m1.small",
+            "ram": 2048,
+            "vcpus": 1
         },
-        "image_ref_url": "http://127.0.0.1:9292/images/",
-        "instance_flavor_id": "1",
-        "instance_id": "c5b9cb08-e8be-427e-82b2-56ba6da2da42",
-        "instance_type": "m1.tiny",
-        "instance_type_id": 6,
-        "kernel_id": "",
-        "launched_at": "2014-09-15T02:08:11.000000",
-        "memory_mb": 512,
-        "node": "a001.comp.syd1.prod.os.anchor.net.au",
-        "os_type": null,
-        "ramdisk_id": "",
-        "reservation_id": "r-4gtpue0h",
-        "root_gb": 1,
-        "state": "active",
-        "state_description": "",
-        "tenant_id": "8ee04b8cfdd94a3cafb16566515af9d5",
-        "terminated_at": "",
-        "user_id": "189b16e386344dc4a96ba08f8ff97b66",
+        "host": "99b3b0658f1b29714aa27bc509e4ab82b19a524d1dc3f6b04ac53e42",
+        "image": null,
+        "image_ref": null,
+        "image_ref_url": null,
+        "instance_type": "2",
+        "kernel_id": null,
+        "memory_mb": 2048,
+        "name": "instance-000009fd",
+        "ramdisk_id": null,
+        "root_gb": 20,
         "vcpus": 1
     },
     "source": "openstack",
-    "timestamp": "2014-09-22 13:00:39.642727",
+    "timestamp": "2014-10-03T00:25:59Z",
+    "type": "cumulative",
+    "unit": "B",
+    "user_id": "1f6f57489d404fe293c65d19e9b31df2",
+    "volume": 12387328
+}
+"""
+expected_disk_write_payload = 12387328
+expected_disk_write_timestamp = 1412295959000000000
+expected_disk_write_sd = {
+    "metric_name": "disk.write.bytes",
+    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
+    "resource_id": "d9067afa-c79c-4a37-8181-84f612da2d48",
+    "display_name": "testcustomer-pe-d9067afa-c79c-4a37-8181-84f612da2d48",
+    "metric_type": "cumulative",
+    "metric_unit": "B",
+    "_consolidated": "1",
+    "_event": "0",
+    "_counter": "1"
+}
+
+disk_read_json = """
+{
+    "id": "d9e137b2-4a93-11e4-b541-ecf4bbc1fce4",
+    "name": "disk.read.bytes",
+    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
+    "resource_id": "d9067afa-c79c-4a37-8181-84f612da2d48",
+    "resource_metadata": {
+        "OS-EXT-AZ:availability_zone": "syd1",
+        "disk_gb": 20,
+        "display_name": "testcustomer-pe-d9067afa-c79c-4a37-8181-84f612da2d48",
+        "ephemeral_gb": 0,
+        "flavor": {
+            "disk": 20,
+            "ephemeral": 0,
+            "id": "2",
+            "links": [
+                {
+                    "href": "http://nova.int.syd1.prod.os.anchor.net.au:8774/bd3f518204b54407854a7dd8d1c49931/flavors/2",
+                    "rel": "bookmark"
+                }
+            ],
+            "name": "m1.small",
+            "ram": 2048,
+            "vcpus": 1
+        },
+        "host": "99b3b0658f1b29714aa27bc509e4ab82b19a524d1dc3f6b04ac53e42",
+        "image": null,
+        "image_ref": null,
+        "image_ref_url": null,
+        "instance_type": "2",
+        "kernel_id": null,
+        "memory_mb": 2048,
+        "name": "instance-000009fd",
+        "ramdisk_id": null,
+        "root_gb": 20,
+        "vcpus": 1
+    },
+    "source": "openstack",
+    "timestamp": "2014-10-03T00:26:00Z",
+    "type": "cumulative",
+    "unit": "B",
+    "user_id": "1f6f57489d404fe293c65d19e9b31df2",
+    "volume": 117644800
+}
+"""
+
+expected_disk_read_payload = 117644800
+expected_disk_read_timestamp = 1412295960000000000
+expected_disk_read_sd = {
+    "metric_name": "disk.read.bytes",
+    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
+    "resource_id": "d9067afa-c79c-4a37-8181-84f612da2d48",
+    "display_name": "testcustomer-pe-d9067afa-c79c-4a37-8181-84f612da2d48",
+    "metric_type": "cumulative",
+    "metric_unit": "B",
+    "_consolidated": "1",
+    "_event": "0",
+    "_counter": "1"
+}
+
+cpu_json = """
+{
+    "id": "dac5d476-4a93-11e4-b541-ecf4bbc1fce4",
+    "name": "cpu",
+    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
+    "resource_id": "d9067afa-c79c-4a37-8181-84f612da2d48",
+    "resource_metadata": {
+        "OS-EXT-AZ:availability_zone": "syd1",
+        "cpu_number": 1,
+        "disk_gb": 20,
+        "display_name": "testcustomer-pe-d9067afa-c79c-4a37-8181-84f612da2d48",
+        "ephemeral_gb": 0,
+        "flavor": {
+            "disk": 20,
+            "ephemeral": 0,
+            "id": "2",
+            "links": [
+                {
+                    "href": "http://nova.int.syd1.prod.os.anchor.net.au:8774/bd3f518204b54407854a7dd8d1c49931/flavors/2",
+                    "rel": "bookmark"
+                }
+            ],
+            "name": "m1.small",
+            "ram": 2048,
+            "vcpus": 1
+        },
+        "host": "99b3b0658f1b29714aa27bc509e4ab82b19a524d1dc3f6b04ac53e42",
+        "image": null,
+        "image_ref": null,
+        "image_ref_url": null,
+        "instance_type": "2",
+        "kernel_id": null,
+        "memory_mb": 2048,
+        "name": "instance-000009fd",
+        "ramdisk_id": null,
+        "root_gb": 20,
+        "vcpus": 1
+    },
+    "source": "openstack",
+    "timestamp": "2014-10-03T00:26:01Z",
+    "type": "cumulative",
+    "unit": "ns",
+    "user_id": "1f6f57489d404fe293c65d19e9b31df2",
+    "volume": 49320000000
+}
+"""
+
+expected_cpu_payload = 49320000000
+expected_cpu_timestamp = 1412295961000000000
+expected_cpu_sd = {
+    "metric_name": "cpu",
+    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
+    "resource_id": "d9067afa-c79c-4a37-8181-84f612da2d48",
+    "display_name": "testcustomer-pe-d9067afa-c79c-4a37-8181-84f612da2d48",
+    "metric_type": "cumulative",
+    "metric_unit": "ns",
+    "_consolidated": "1",
+    "_event": "0",
+    "_counter": "1"
+}
+
+disk_write_requests_json = """
+{
+    "id": "e83fc9ea-4a93-11e4-b541-ecf4bbc1fce4",
+    "name": "disk.write.requests",
+    "project_id": "1dcad6d961334ccc8a3d55ba017ffe80",
+    "resource_id": "093517a5-f3bd-4389-ad50-6cf86b3e6396",
+    "resource_metadata": {
+        "OS-EXT-AZ:availability_zone": "syd1",
+        "disk_gb": 1,
+        "display_name": "sio-resh-093517a5-f3bd-4389-ad50-6cf86b3e6396",
+        "ephemeral_gb": 0,
+        "flavor": {
+            "disk": 1,
+            "ephemeral": 0,
+            "id": "1",
+            "links": [
+                {
+                    "href": "http://nova.int.syd1.prod.os.anchor.net.au:8774/bd3f518204b54407854a7dd8d1c49931/flavors/1",
+                    "rel": "bookmark"
+                }
+            ],
+            "name": "m1.tiny",
+            "ram": 512,
+            "vcpus": 1
+        },
+        "host": "f3c773da31821e60fcb75af58952096da520679f176605c21033feac",
+        "image": null,
+        "image_ref": null,
+        "image_ref_url": null,
+        "instance_type": "1",
+        "kernel_id": null,
+        "memory_mb": 512,
+        "name": "instance-000008ff",
+        "ramdisk_id": null,
+        "root_gb": 1,
+        "vcpus": 1
+    },
+    "source": "openstack",
+    "timestamp": "2014-10-03T00:26:24Z",
+    "type": "cumulative",
+    "unit": "request",
+    "user_id": "1f6f57489d404fe293c65d19e9b31df2",
+    "volume": 3624
+}
+"""
+instance_tiny_json = """
+{
+    "id": "e943094c-4a93-11e4-b541-ecf4bbc1fce4",
+    "name": "instance:m1.tiny",
+    "project_id": "5e4b3c183e3f4c4aa5e5e8b78a6c80c2",
+    "resource_id": "d94bc995-a2ab-4a9a-9405-fbec69828bc7",
+    "resource_metadata": {
+        "OS-EXT-AZ:availability_zone": "syd1",
+        "disk_gb": 1,
+        "display_name": "louie.entropyonwheels.com",
+        "ephemeral_gb": 0,
+        "flavor": {
+            "disk": 1,
+            "ephemeral": 0,
+            "id": "1",
+            "links": [
+                {
+                    "href": "http://nova.int.syd1.prod.os.anchor.net.au:8774/bd3f518204b54407854a7dd8d1c49931/flavors/1",
+                    "rel": "bookmark"
+                }
+            ],
+            "name": "m1.tiny",
+            "ram": 512,
+            "vcpus": 1
+        },
+        "host": "25e409871a7dc4f271bb08de1c4f6beaf87c53f9ffef7cef5693bc5a",
+        "image": null,
+        "image_ref": null,
+        "image_ref_url": null,
+        "instance_type": "1",
+        "kernel_id": null,
+        "memory_mb": 512,
+        "name": "instance-000002cb",
+        "ramdisk_id": null,
+        "root_gb": 1,
+        "vcpus": 1
+    },
+    "source": "openstack",
+    "timestamp": "2014-10-03T00:26:26Z",
     "type": "gauge",
     "unit": "instance",
-    "user_id": "189b16e386344dc4a96ba08f8ff97b66",
+    "user_id": "29ce915f6f80426f8d059e6495e4441a",
     "volume": 1
 }
 """
 
-expected_consolidated_instance_event_dict = {
-    "metric_name": "instance",
-    "project_id": "8ee04b8cfdd94a3cafb16566515af9d5",
-    "resource_id": "c5b9cb08-e8be-427e-82b2-56ba6da2da42",
-    "display_name": "Tutorial01",
-    "metric_type": "gauge",
-    "counter_unit": "instance",
-    "_consolidated": "1",
-    "_event": "1"
-}
-
-expected_consolidated_instance_event_payload = (5 << 8) + (6 << 32)
-
-event_json = """
-                {
-                    "project_id": "123",
-                    "resource_id": "456",
-                    "name": "instance",
-                    "type": "gauge",
-                    "unit": "instance",
-                    "volume": 23,
-                    "timestamp": "1970-01-01 00:00:00",
-                    "resource_metadata": {
-                        "instance_type_id": 14,
-                        "display_name": "bob",
-                        "event_type": "instance.create.end",
-                        "message": "Success"
-                    },
-                    "flavor": {
-                        "name": "m1.tiny"
-                    }
-                }
-                """
-
-mini_json = """
-                {
-                    "project_id": "123",
-                    "resource_id": "456",
-                    "name": "instance",
-                    "type": "gauge",
-                    "unit": "instance",
-                    "volume": 1,
-                    "timestamp": "1970-01-01 00:00:00",
-                    "resource_metadata": {
-                    "instance_type": "13",
-                        "foo": "bar",
-                        "display_name": "bob",
-                        "flavor": {
-                            "name": "m1.tiny",
-                            "ram": 512,
-                            "ephemeral": 0,
-                            "vcpus": 1,
-                            "disk": 1,
-                            "id": "1"
-                        }
-                    }
-                }
-                """
-parsed_json = json.loads(sample_json)
-parsed_event_json = json.loads(event_json)
-parsed_mini_json = json.loads(mini_json)
-
 def test_process_sample():
-    mini_list = ceilometer_publisher_vaultaire.process.process_sample(copy.copy(parsed_mini_json))
-    event_list = ceilometer_publisher_vaultaire.process.process_sample(copy.copy(parsed_event_json))
-    # We're expecting three consolidated pollsters and one raw pollster.
-    assert len(mini_list) == 4
-    assert len(event_list) == 2
-    #Check the addresses the raw and consolidated versions produce are distinct
-    assert event_list[0][0] != event_list[1][0]
-    #Check the addresses the raw version produces are distinct across event/non-event
-    assert mini_list[0][0] != event_list[1][0]
+    for js in [network_rx_json, network_tx_json, cpu_json, disk_write_json, disk_read_json, ip_json, volume_json]:
+        parsed_json = json.loads(js)
+        result_list = ceilometer_publisher_vaultaire.process_sample(parsed_json)
+        assert len(result_list) == 1
+    for js in [disk_write_requests_json, instance_tiny_json]:
+        parsed_json = json.loads(js)
+        result_list = ceilometer_publisher_vaultaire.process_sample(parsed_json)
+        assert len(result_list) == 0
 
-def test_remove_extraneous():
-    expected = """
-                {
-                    "name": "disk.read.requests",
-                    "project_id": "78e2fc2a70314713b9f814ec634b5e10",
-                    "resource_id": "cda0c65e-0fc6-4810-89d6-b5c78745f12d",
-                    "type": "cumulative",
-                    "unit": "request",
-                    "user_id": "8288e6719e8c4b6a8b130ae77af7abbc"
-                }
-"""
-    local_json = copy.copy(parsed_json)
-    ceilometer_publisher_vaultaire.process.remove_extraneous(local_json)
-    expected_json = json.loads(expected)
-    assert local_json == expected_json
+def test_consolidate_volume_event():
+    parsed_volume_json = json.loads(volume_json)
+    result = ceilometer_publisher_vaultaire.consolidate_volume_event(parsed_volume_json)
+    compare_result(result, expected_volume_sd, expected_volume_timestamp, expected_volume_payload)
 
-def test_process_raw():
-    process_raw = ceilometer_publisher_vaultaire.process.process_raw
+def test_consolidate_ip_event():
+    parsed_ip_json = json.loads(ip_json)
+    result = ceilometer_publisher_vaultaire.consolidate_ip_event(parsed_ip_json)
+    compare_result(result, expected_ip_sd, expected_ip_timestamp, expected_ip_payload)
 
-    expectedMiniSd = {"project_id": "123", "resource_id": "456", "metric_name": "instance", "metric_type": "gauge", "_unit": "instance", "display_name": "bob"}
-    expectedEventSd = {"project_id": "123", "resource_id": "456", "metric_name": "instance", "metric_type": "gauge", "_unit": "instance", "display_name": "bob", "event_type": "instance.create.end"}
-    (addr1, sd1, ts1, p1) = process_raw(copy.copy(parsed_mini_json))
-    (addr2, sd2, ts2, p2) = process_raw(copy.copy(parsed_event_json))
-    assert sd1 == expectedMiniSd
-    assert sd2 == expectedEventSd
-    assert sd1 != sd2
-    assert ts1 == 0
-    assert ts1 == ts2
-    assert p1 == 1
-    assert p2 == 23
-    assert addr1 != addr2
-
-def test_consolidate_instance_flavor():
-    parsed_mini_json = json.loads(mini_json)
-    (_, sd, ts, p) = ceilometer_publisher_vaultaire.consolidate_instance_flavor(parsed_mini_json)
-    expected_sd = {"project_id": "123", "resource_id": "456", "metric_name": "instance_flavor", "metric_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1", "_event": "0"}
-    assert sd == expected_sd
-    assert p == siphash.SipHash24("\0"*16, "13").hash()
-    assert ts == 0
+def test_consolidate_instance():
     parsed_instance_pollster_json = json.loads(instance_pollster_json)
+    result_list = ceilometer_publisher_vaultaire.process_sample(parsed_instance_pollster_json)
+    assert len(result_list) == 4
+    flavor_result = result_list[0]
+    ram_result = result_list[1]
+    vcpus_result = result_list[2]
+    disk_result = result_list[3]
 
-    (_, sd, _, p) = ceilometer_publisher_vaultaire.consolidate_instance_flavor(parsed_instance_pollster_json)
-    assert sd == expected_consolidated_instance_pollster_dict
-    assert p == expected_consolidated_instance_pollster_payload
+    compare_result(flavor_result, expected_instance_flavor_sd, expected_instance_timestamp, expected_instance_flavor_payload)
+    compare_result(ram_result, expected_instance_ram_sd, expected_instance_timestamp, expected_instance_ram_payload)
+    compare_result(vcpus_result, expected_instance_vcpus_sd, expected_instance_timestamp, expected_instance_vcpus_payload)
+    compare_result(disk_result, expected_instance_disk_sd, expected_instance_timestamp, expected_instance_disk_payload)
 
-def test_consolidate_instance_characteristics():
-    parsed_mini_json = json.loads(mini_json)
-    (_, sd, ts, p) = ceilometer_publisher_vaultaire.consolidate_instance_ram(parsed_mini_json)
-    assert p == 512
-    assert sd == {"project_id": "123", "resource_id": "456", "metric_name": "instance_ram", "metric_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1", "_event": "0"}
-    (_, sd, ts, p) = ceilometer_publisher_vaultaire.consolidate_instance_vcpus(parsed_mini_json)
-    assert p == 1
-    assert sd == {"project_id": "123", "resource_id": "456", "metric_name": "instance_vcpus", "metric_type": "gauge", "counter_unit": "instance", "display_name": "bob", "_consolidated": "1", "_event": "0"}
+def test_process_base_pollster():
+    result = ceilometer_publisher_vaultaire.process_base_pollster(json.loads(network_rx_json))
+    compare_result(result, expected_network_rx_sd, expected_network_rx_timestamp, expected_network_rx_payload)
 
-def test_consolidate_instance_event():
-    parsed_event_json = json.loads(event_json)
-    (_, sd, ts, p) = ceilometer_publisher_vaultaire.consolidate_instance_event(parsed_event_json)
-    expected_sd =  {"project_id": "123", "resource_id": "456", "metric_name": "instance", "metric_type": "gauge", "counter_unit": "instance", "_consolidated": "1", "_event": "1", "display_name": "bob"}
+    result = ceilometer_publisher_vaultaire.process_base_pollster(json.loads(network_tx_json))
+    compare_result(result, expected_network_tx_sd, expected_network_tx_timestamp, expected_network_tx_payload)
+
+    result = ceilometer_publisher_vaultaire.process_base_pollster(json.loads(disk_write_json))
+    compare_result(result, expected_disk_write_sd, expected_disk_write_timestamp, expected_disk_write_payload)
+
+    result = ceilometer_publisher_vaultaire.process_base_pollster(json.loads(disk_read_json))
+    compare_result(result, expected_disk_read_sd, expected_disk_read_timestamp, expected_disk_read_payload)
+
+    result = ceilometer_publisher_vaultaire.process_base_pollster(json.loads(cpu_json))
+    compare_result(result, expected_cpu_sd, expected_cpu_timestamp, expected_cpu_payload)
+
+def compare_result(result, expected_sd, expected_ts, expected_p):
+    (_, sd, ts, p) = result
     assert sd == expected_sd
-    assert p == (1 << 8) + (2 << 16) + (14 << 32)
-    assert ts == 0
-    parsed_instance_event_json = json.loads(instance_event_json)
-
-    (_, sd, _, p) = ceilometer_publisher_vaultaire.consolidate_instance_event(parsed_instance_event_json)
-    assert sd == expected_consolidated_instance_event_dict
-    assert p == expected_consolidated_instance_event_payload
+    assert ts == expected_ts
+    assert p  == expected_p
 
 def test_sanitize():
     sanitize = ceilometer_publisher_vaultaire.process.sanitize
@@ -326,12 +601,11 @@ def test_sanitize_timestamp():
     assert sanitize_timestamp("1993-03-17T21:00:00+1000") == 732366000*10**9
 
 if __name__ == '__main__':
+    test_consolidate_instance()
+    test_consolidate_volume_event()
+    test_consolidate_ip_event()
+    test_process_base_pollster()
     test_process_sample()
-    test_remove_extraneous()
-    test_process_raw()
-    test_consolidate_instance_flavor()
-    test_consolidate_instance_event()
-    test_consolidate_instance_characteristics()
     test_sanitize()
     test_sanitize_timestamp()
 
