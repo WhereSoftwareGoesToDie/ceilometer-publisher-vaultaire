@@ -43,7 +43,7 @@ expected_volume_payload = 2 + (1 << 8) + (1 << 16) + (10 << 32)
 expected_volume_timestamp = 1411371101378773000
 expected_volume_sd = {
     "_event": "1",
-    "_consolidated": "1",
+    "_compound": "1",
     "project_id": "aaaf752c50804cf3aad71b92e6ced65e",
     "resource_id": "6b116a55-2716-4406-9304-0080e3a5c608",
     "metric_name": "volume.size",
@@ -83,7 +83,7 @@ expected_ip_payload = 2 + (1 << 8) + (2 << 16) + (1 << 32)
 expected_ip_timestamp = 1411371303030569000
 expected_ip_sd = {
     "_event": "1",
-    "_consolidated": "1",
+    "_compound": "1",
     "project_id": "aaaf752c50804cf3aad71b92e6ced65e",
     "resource_id": "d1d96a82-c1ce-4feb-acc1-227a50be9b9f",
     "metric_name": "ip.floating",
@@ -148,7 +148,7 @@ expected_instance_flavor_sd = {
     "display_name": "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615",
     "metric_type": "gauge",
     "metric_unit": "instance",
-    "_consolidated": "1",
+    "_compound": "0",
     "_event": "0"
 }
 expected_instance_ram_payload = 2048
@@ -159,7 +159,7 @@ expected_instance_ram_sd = {
     "display_name": "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615",
     "metric_type": "gauge",
     "metric_unit": "MB",
-    "_consolidated": "1",
+    "_compound": "0",
     "_event": "0"
 }
 expected_instance_vcpus_payload = 1
@@ -170,7 +170,7 @@ expected_instance_vcpus_sd = {
     "display_name": "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615",
     "metric_type": "gauge",
     "metric_unit": "vcpu",
-    "_consolidated": "1",
+    "_compound": "0",
     "_event": "0"
 }
 expected_instance_disk_payload = 20
@@ -181,7 +181,7 @@ expected_instance_disk_sd = {
     "display_name": "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615",
     "metric_type": "gauge",
     "metric_unit": "GB",
-    "_consolidated": "1",
+    "_compound": "0",
     "_event": "0"
 }
 
@@ -216,7 +216,7 @@ expected_network_rx_sd = {
     "display_name": "",
     "metric_type": "cumulative",
     "metric_unit": "B",
-    "_consolidated": "1",
+    "_compound": "0",
     "_event": "0",
     "_counter": "1"
 }
@@ -252,7 +252,7 @@ expected_network_tx_sd = {
     "display_name": "",
     "metric_type": "cumulative",
     "metric_unit": "B",
-    "_consolidated": "1",
+    "_compound": "0",
     "_event": "0",
     "_counter": "1"
 }
@@ -311,7 +311,7 @@ expected_disk_write_sd = {
     "display_name": "testcustomer-pe-d9067afa-c79c-4a37-8181-84f612da2d48",
     "metric_type": "cumulative",
     "metric_unit": "B",
-    "_consolidated": "1",
+    "_compound": "0",
     "_event": "0",
     "_counter": "1"
 }
@@ -371,7 +371,7 @@ expected_disk_read_sd = {
     "display_name": "testcustomer-pe-d9067afa-c79c-4a37-8181-84f612da2d48",
     "metric_type": "cumulative",
     "metric_unit": "B",
-    "_consolidated": "1",
+    "_compound": "0",
     "_event": "0",
     "_counter": "1"
 }
@@ -432,7 +432,7 @@ expected_cpu_sd = {
     "display_name": "testcustomer-pe-d9067afa-c79c-4a37-8181-84f612da2d48",
     "metric_type": "cumulative",
     "metric_unit": "ns",
-    "_consolidated": "1",
+    "_compound": "0",
     "_event": "0",
     "_counter": "1"
 }

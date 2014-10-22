@@ -50,17 +50,23 @@ def is_event_sample(sample):
     """Returns true given an event sample, false given a pollster sample"""
     return "event_type" in sample["resource_metadata"]
 
+def is_compound_sample(sample):
+    name = sample["name"]
+    return (name == "ip.floating" and is_event_sample(sample)) or \
+           (name == "volume.size" and is_event_sample(sample))
+
 def get_base_sourcedict(payload, sample, name):
     """Generates a sourcedict from the given payload, sample and name"""
     sourcedict = {}
     sourcedict["_event"]        = 1 if is_event_sample(sample) else 0
-    sourcedict["_consolidated"] = 1
+    sourcedict["_compound"]     = 1 if is_compound_sample(sample) else 0
     sourcedict["project_id"]    = sample["project_id"]
     sourcedict["resource_id"]   = sample["resource_id"]
     sourcedict["metric_name"]   = name
     sourcedict["metric_unit"]   = sample["unit"]
     sourcedict["metric_type"]   = sample["type"]
     sourcedict["display_name"]  = sample["resource_metadata"].get("display_name", "")
+
 
     if sample["type"] == "cumulative":
         sourcedict["_counter"] = 1
@@ -81,13 +87,14 @@ def get_id_elements(sample, name):
         sample["unit"],
         sample["type"],
         name,
-        "_consolidated"
     ]
     # If this is an event sample, the event type is always part of the
     # identifier (as is the fact that it is an event).
     if is_event_sample(sample):
         id_elements.append("_event")
         id_elements.append(sample["resource_metadata"]["event_type"])
+    if is_compound_sample(sample):
+        id_elements.append("_compound")
     return id_elements
 
 def get_address(sample, name):
