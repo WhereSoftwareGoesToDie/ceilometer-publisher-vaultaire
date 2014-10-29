@@ -44,14 +44,14 @@ processSample bs =
     case decode bs of
         Nothing           -> liftIO $ alertM "Ceilometer.Process.processSample" $ "Failed to parse: " ++ show bs
         Just m@Metric{..} -> case (metricName, isEvent m) of
-            ("instance", False) -> consolidateInstance m
-            ("cpu", False) -> processBasePollster m
-            ("disk.write.bytes", False) -> processBasePollster m
-            ("disk.read.bytes", False) -> processBasePollster m
-            ("network.incoming.bytes", False) -> processBasePollster m
-            ("network.outgoing.bytes", False) -> processBasePollster m
-            ("ip.floating", True) -> consolidateIpEvent m
-            ("volume.size", True) -> consolidateVolumeEvent m
+            ("instance", False) -> publishInstance m
+            ("cpu", False) -> publishBasePollster m
+            ("disk.write.bytes", False) -> publishBasePollster m
+            ("disk.read.bytes", False) -> publishBasePollster m
+            ("network.incoming.bytes", False) -> publishBasePollster m
+            ("network.outgoing.bytes", False) -> publishBasePollster m
+            ("ip.floating", True) -> publishIpEvent m
+            ("volume.size", True) -> publishVolumeEvent m
             (x, y) -> liftIO $ infoM "Ceilometer.Process.processSample" $ concat ["Unsupported metric: ", show x, " event: ", show y]
 
 isEvent :: Metric -> Bool
@@ -105,29 +105,29 @@ getIdElements m@Metric{..} name =
 getAddress :: Metric -> Text -> Address
 getAddress m name = hashIdentifier $ T.encodeUtf8 $ mconcat $ getIdElements m name
 
-processBasePollster :: Metric -> PublisherProducer
-processBasePollster m@Metric{..} = do
+publishBasePollster :: Metric -> PublisherProducer
+publishBasePollster m@Metric{..} = do
     sd <- liftIO $ mapToSourceDict $ getSourceMap m
     case sd of
         Just sd' -> do
-            let addr = getAddress m metricName            
+            let addr = getAddress m metricName
             yield (addr, Left sd')
             yield (addr, Right (SimplePoint addr metricTimeStamp metricPayload))
         Nothing -> return ()
 
-consolidateInstance :: Metric -> PublisherProducer
-consolidateInstance m@Metric{..} = do
+publishInstance :: Metric -> PublisherProducer
+publishInstance m@Metric{..} = do
     let baseMap = getSourceMap m
     let names = ["instance_vcpus", "instance_ram", "instance_disk", "instance_flavor"]
     let uoms  = ["vcpu"          , "MB"          , "GB"           , "instance"       ]
     let addrs = map (getAddress m) names
-    let sourceMaps = map (\(name, uom) -> H.insert "metric_unit" uom $ H.insert "metric_name" name baseMap) 
+    let sourceMaps = map (\(name, uom) -> H.insert "metric_unit" uom $ H.insert "metric_name" name baseMap)
             (zip names uoms)
     sds <- liftIO $ catMaybes <$> forM sourceMaps mapToSourceDict
-    
+
     if length sds == 4 then
         case fromJSON $ fromJust $ H.lookup "flavor" metricMetadata of
-            Error e -> liftIO $ alertM "Ceilometer.Process.consolidateInstance" $
+            Error e -> liftIO $ alertM "Ceilometer.Process.publishInstance" $
                 "Failed to parse flavor sub-object for instance pollster" ++ show e
             Success Flavor{..} -> do
                 let (String instanceType) = fromJust $ H.lookup "instance_type" metricMetadata
@@ -137,17 +137,17 @@ consolidateInstance m@Metric{..} = do
                     yield (addr, Left sd)
                     yield (addr, Right (SimplePoint addr metricTimeStamp p))
     else
-        liftIO $ alertM "Ceilometer.Process.consolidateInstance" 
+        liftIO $ alertM "Ceilometer.Process.publishInstance"
             "Failure to convert all sourceMaps to SourceDicts for instance pollster"
 
-consolidateVolumeEvent :: Metric -> PublisherProducer
-consolidateVolumeEvent m = consolidateEvent m getVolumePayload
+publishVolumeEvent :: Metric -> PublisherProducer
+publishVolumeEvent = publishEvent getVolumePayload
 
-consolidateIpEvent :: Metric -> PublisherProducer
-consolidateIpEvent m = consolidateEvent m getIpPayload
+publishIpEvent :: Metric -> PublisherProducer
+publishIpEvent = publishEvent getIpPayload
 
-consolidateEvent :: Metric -> (Metric -> IO (Maybe Word64)) -> PublisherProducer
-consolidateEvent m@Metric{..} f = do
+publishEvent :: (Metric -> IO (Maybe Word64)) -> Metric -> PublisherProducer
+publishEvent f m@Metric{..} = do
     p <- liftIO $ f m
     case p of
         Nothing -> return ()
@@ -155,7 +155,7 @@ consolidateEvent m@Metric{..} f = do
             sd <- liftIO $ mapToSourceDict $ getSourceMap m
             case sd of
                 Just sd' -> do
-                    let addr = getAddress m metricName            
+                    let addr = getAddress m metricName
                     yield (addr, Left sd')
                     yield (addr, Right (SimplePoint addr metricTimeStamp compoundPayload))
                 Nothing -> return ()
