@@ -6,7 +6,10 @@
 module Ceilometer.Process where
 
 import           Control.Applicative
+import           Control.Concurrent hiding (yield)
 import           Control.Monad
+import           Control.Monad.Reader
+import           Control.Monad.State
 import           Crypto.MAC.SipHash(SipHash(..), SipKey(..), hash)
 import           Data.Aeson
 import           Data.Bits
@@ -20,24 +23,52 @@ import           Data.Word
 import           Data.Text(Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
+import           Network.AMQP
+import           Options.Applicative hiding (Success)
 import           Pipes
 import           System.Log.Logger
 
 import           Marquise.Client
-import           Vaultaire.Collector.Common.Types
 import           Vaultaire.Collector.Common.Process
 
 import           Ceilometer.Types
 
-type PublisherProducer = Producer (Address, Either SourceDict SimplePoint) (Collector () () IO) ()
-
 runPublisher :: IO ()
-runPublisher = runBaseCollector processSamples
+runPublisher = do
+    opts <- execParser (info parseOptions fullDesc)
+    runCollector opts initState cleanup processSamples
+  where
+    parseOptions = CeilometerOptions
+        <$> strOption
+            (long "host-name"
+             <> short 'h'
+             <> metavar "HOST-NAME"
+             <> help "URI of message queue to use")
+        <*> option auto
+            (long "poll-period"
+             <> short 'p'
+             <> value 1000000
+             <> metavar "POLL-PERIOD"
+             <> help "Time to wait (in microseconds) before re-querying empty queue.")
+    initState (_, CeilometerOptions uri _) = do
+        conn <- openConnection uri "/" "" ""
+        chan <- openChannel conn
+        return $ CeilometerState conn chan
+
+    cleanup = do
+        (_, CeilometerState conn _) <- get
+        liftIO $ closeConnection conn
 
 processSamples :: PublisherProducer
 processSamples = forever $ do
-    line <- liftIO $ L.pack <$> getLine
-    processSample line
+    (_, CeilometerOptions{..}) <- lift ask
+    (_, CeilometerState{..}) <- lift get
+    msg <- liftIO $ getMsg ceilometerMessageChan Ack "queue_name"
+    case msg of
+        Nothing          -> liftIO $ threadDelay ceilometerPollPeriod
+        Just (msg', env) -> do
+            processSample $ msgBody msg'
+            liftIO $ ackEnv env
 
 processSample :: L.ByteString -> PublisherProducer
 processSample bs =

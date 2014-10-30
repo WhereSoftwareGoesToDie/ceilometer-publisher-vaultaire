@@ -2,7 +2,7 @@
 --   For further documentation, see http://haskell.org/cabal/users-guide/
 
 name:                ceilometer-publisher-vaultaire
-version:             0.0.1
+version:             0.0.2
 -- synopsis:            
 -- description:         
 license:             BSD3
@@ -31,6 +31,9 @@ library
                      unordered-containers,
                      siphash,
                      marquise,
+                     amqp,
+                     optparse-applicative,
+                     mtl,
                      vaultaire-collector-common,
                      vaultaire-common
 

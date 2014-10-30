@@ -8,7 +8,10 @@ import           Data.Aeson.Types
 import           Data.HashMap.Strict(HashMap)
 import           Data.Text(Text)
 import           Data.Word
+import           Network.AMQP
+import           Pipes
 
+import           Vaultaire.Collector.Common.Types
 import           Vaultaire.Types
 
 data Metric = Metric
@@ -28,6 +31,18 @@ data Flavor = Flavor
     , instanceDisk      :: Word64
     , instanceEphemeral :: Word64
     } deriving Show
+
+data CeilometerOptions = CeilometerOptions
+    { ceilometerMessageURI :: String
+    , ceilometerPollPeriod :: Int
+    }
+
+data CeilometerState = CeilometerState
+    { ceilometerMessageConn :: Connection
+    , ceilometerMessageChan :: Channel
+    }
+
+type PublisherProducer = CollectionStream CeilometerOptions CeilometerState IO
 
 instance FromJSON Metric where
     parseJSON (Object s) = Metric
