@@ -32,9 +32,13 @@ data Flavor = Flavor
     } deriving Show
 
 data CeilometerOptions = CeilometerOptions
-    { ceilometerMessageURI :: String
-    , ceilometerPollPeriod :: Int
-    , ceilometerExchange   :: Text
+    { rabbitLogin :: Text
+    , rabbitVHost :: Text
+    , rabbitHost  :: String
+    , rabbitHa    :: Bool
+    , rabbitUseSSL :: Bool
+    , rabbitExchange   :: Text
+    , rabbitPollPeriod :: Int
     }
 
 data CeilometerState = CeilometerState

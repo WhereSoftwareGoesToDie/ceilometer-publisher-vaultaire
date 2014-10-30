@@ -34,33 +34,52 @@ import           Vaultaire.Collector.Common.Process
 import           Ceilometer.Types
 
 runPublisher :: IO ()
-runPublisher = do
-    opts <- execParser (info parseOptions fullDesc)
-    runCollector opts initState cleanup processSamples
+runPublisher = runCollector parseOptions initState cleanup processSamples
   where
     parseOptions = CeilometerOptions
-        <$> strOption
-            (long "host-name"
+        <$> (T.pack <$> strOption
+            (long "rabbit-login"
+             <> short 'u'
+             <> metavar "USERNAME"
+             <> help "RabbitMQ username"))
+        <*> (T.pack <$> strOption
+            (long "rabbit-virtual-host"
+             <> short 'r'
+             <> metavar "VIRTUAL_HOSTNAME"
+             <> value "/"
+             <> help "RabbitMQ virtual host"))
+        <*> strOption
+            (long "rabbit-host"
              <> short 'h'
-             <> metavar "HOST-NAME"
-             <> help "URI of message queue to use")
+             <> metavar "HOSTNAME"
+             <> help "RabbitMQ host")
+        <*> switch
+            (long "rabbit-ha"
+             <> short 'a'
+             <> help "Use highly available queues for RabbitMQ")
+        <*> switch
+            (long "rabbit-ssl"
+            <> short 's'
+            <> help "Use SSL for RabbitMQ")
+        <*> (T.pack <$> strOption
+            (long "rabbit-exchange"
+             <> short 'x'
+             <> value "ceilometer"
+             <> metavar "EXCHANGE"
+             <> help "RabbitMQ exchange"))
         <*> option auto
             (long "poll-period"
              <> short 'p'
              <> value 1000000
              <> metavar "POLL-PERIOD"
              <> help "Time to wait (in microseconds) before re-querying empty queue.")
-        <*> option auto
-            (long "exchange"
-             <> short 'e'
-             <> value "ceilometer"
-             <> metavar "CONTROL-EXCHANGE"
-             <> help "Name of the ceilometer control exchange.")
     initState (_, CeilometerOptions{..}) = do
-        conn <- openConnection ceilometerMessageURI "/" "" ""
+        putStrLn "password?"
+        password <- T.pack <$> getLine
+        conn <- openConnection rabbitHost rabbitVHost rabbitLogin password
         chan <- openChannel conn
         (q, _, _) <- declareQueue chan newQueue
-        bindQueue chan q ceilometerExchange ""
+        bindQueue chan q rabbitExchange ""
         return $ CeilometerState conn chan
 
     cleanup = do
@@ -73,7 +92,7 @@ processSamples = forever $ do
     (_, CeilometerState{..}) <- lift get
     msg <- liftIO $ getMsg ceilometerMessageChan Ack "queue_name"
     case msg of
-        Nothing          -> liftIO $ threadDelay ceilometerPollPeriod
+        Nothing          -> liftIO $ threadDelay rabbitPollPeriod
         Just (msg', env) -> do
             processSample $ msgBody msg'
             liftIO $ ackEnv env

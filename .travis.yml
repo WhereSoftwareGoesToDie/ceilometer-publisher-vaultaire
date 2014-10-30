@@ -30,7 +30,7 @@ install:
   - 'cabal-$CABALVER sandbox init'
   -  git clone https://github.com/anchor/vaultaire-common.git ../vaultaire-collector-common/
   -  cd ../vaultaire-collector-common/
-  -  git checkout add_cleanup
+  -  git checkout origin add_cleanup
   -  cd ../ceilometer-publisher-vaultaire/
   -  git clone https://github.com/anchor/vaultaire-common.git ../vaultaire-common/
   -  git clone https://github.com/anchor/marquise.git ../marquise/
