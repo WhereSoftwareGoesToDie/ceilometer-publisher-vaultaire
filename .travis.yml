@@ -28,7 +28,7 @@ install:
   - 'sed -r -i "s,^(remote-repo: hackage.haskell.org.*)$,\1\nremote-repo: hackage.syd1.anchor.net.au:http://hackage.syd1.anchor.net.au/packages/archive," /home/travis/.cabal/config'
   - 'cabal-$CABALVER update'
   - 'cabal-$CABALVER sandbox init'
-  -  git clone https://github.com/anchor/vaultaire-common.git ../vaultaire-collector-common/
+  -  git clone https://github.com/anchor/vaultaire-collector-common.git ../vaultaire-collector-common/
   -  git clone https://github.com/anchor/vaultaire-common.git ../vaultaire-common/
   -  git clone https://github.com/anchor/marquise.git ../marquise/
   - 'cabal-$CABALVER sandbox add-source ../vaultaire-collector-common/'
