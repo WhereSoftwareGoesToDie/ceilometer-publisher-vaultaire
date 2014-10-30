@@ -9,7 +9,6 @@ import           Data.HashMap.Strict(HashMap)
 import           Data.Text(Text)
 import           Data.Word
 import           Network.AMQP
-import           Pipes
 
 import           Vaultaire.Collector.Common.Types
 import           Vaultaire.Types
@@ -35,6 +34,7 @@ data Flavor = Flavor
 data CeilometerOptions = CeilometerOptions
     { ceilometerMessageURI :: String
     , ceilometerPollPeriod :: Int
+    , ceilometerExchange   :: Text
     }
 
 data CeilometerState = CeilometerState

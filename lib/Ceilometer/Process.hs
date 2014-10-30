@@ -50,9 +50,17 @@ runPublisher = do
              <> value 1000000
              <> metavar "POLL-PERIOD"
              <> help "Time to wait (in microseconds) before re-querying empty queue.")
-    initState (_, CeilometerOptions uri _) = do
-        conn <- openConnection uri "/" "" ""
+        <*> option auto
+            (long "exchange"
+             <> short 'e'
+             <> value "ceilometer"
+             <> metavar "CONTROL-EXCHANGE"
+             <> help "Name of the ceilometer control exchange.")
+    initState (_, CeilometerOptions{..}) = do
+        conn <- openConnection ceilometerMessageURI "/" "" ""
         chan <- openChannel conn
+        (q, _, _) <- declareQueue chan newQueue
+        bindQueue chan q ceilometerExchange ""
         return $ CeilometerState conn chan
 
     cleanup = do
