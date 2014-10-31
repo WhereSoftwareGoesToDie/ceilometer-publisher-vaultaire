@@ -42,11 +42,12 @@ data CeilometerOptions = CeilometerOptions
     }
 
 data CeilometerState = CeilometerState
-    { ceilometerMessageConn :: Connection
-    , ceilometerMessageChan :: Channel
+    { ceilometerMessageConn  :: Connection
+    , ceilometerMessageChan  :: Channel
+    , ceilometerMessageQueue :: Text
     }
 
-type PublisherProducer = CollectionStream CeilometerOptions CeilometerState IO
+type Publisher = Collector CeilometerOptions CeilometerState IO
 
 instance FromJSON Metric where
     parseJSON (Object s) = Metric

@@ -2,7 +2,7 @@
 --   For further documentation, see http://haskell.org/cabal/users-guide/
 
 name:                ceilometer-publisher-vaultaire
-version:             0.0.2
+version:             0.0.3
 -- synopsis:            
 -- description:         
 license:             BSD3

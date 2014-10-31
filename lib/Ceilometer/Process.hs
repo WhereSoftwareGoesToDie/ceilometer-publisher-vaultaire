@@ -25,7 +25,6 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import           Network.AMQP
 import           Options.Applicative hiding (Success)
-import           Pipes
 import           System.Log.Logger
 
 import           Marquise.Client
@@ -80,24 +79,24 @@ runPublisher = runCollector parseOptions initState cleanup processSamples
         chan <- openChannel conn
         (q, _, _) <- declareQueue chan newQueue
         bindQueue chan q rabbitExchange ""
-        return $ CeilometerState conn chan
+        return $ CeilometerState conn chan q
 
     cleanup = do
-        (_, CeilometerState conn _) <- get
+        (_, CeilometerState conn _ _) <- get
         liftIO $ closeConnection conn
 
-processSamples :: PublisherProducer
+processSamples :: Publisher ()
 processSamples = forever $ do
-    (_, CeilometerOptions{..}) <- lift ask
-    (_, CeilometerState{..}) <- lift get
-    msg <- liftIO $ getMsg ceilometerMessageChan Ack "queue_name"
+    (_, CeilometerOptions{..}) <- ask
+    (_, CeilometerState{..}) <- get
+    msg <- liftIO $ getMsg ceilometerMessageChan Ack ceilometerMessageQueue
     case msg of
         Nothing          -> liftIO $ threadDelay rabbitPollPeriod
         Just (msg', env) -> do
             processSample $ msgBody msg'
             liftIO $ ackEnv env
 
-processSample :: L.ByteString -> PublisherProducer
+processSample :: L.ByteString -> Publisher ()
 processSample bs =
     case decode bs of
         Nothing           -> liftIO $ alertM "Ceilometer.Process.processSample" $ "Failed to parse: " ++ show bs
@@ -163,17 +162,17 @@ getIdElements m@Metric{..} name =
 getAddress :: Metric -> Text -> Address
 getAddress m name = hashIdentifier $ T.encodeUtf8 $ mconcat $ getIdElements m name
 
-publishBasePollster :: Metric -> PublisherProducer
+publishBasePollster :: Metric -> Publisher ()
 publishBasePollster m@Metric{..} = do
     sd <- liftIO $ mapToSourceDict $ getSourceMap m
     case sd of
         Just sd' -> do
             let addr = getAddress m metricName
-            yield (addr, Left sd')
-            yield (addr, Right (SimplePoint addr metricTimeStamp metricPayload))
+            collectSource addr sd'
+            collectSimple (SimplePoint addr metricTimeStamp metricPayload)
         Nothing -> return ()
 
-publishInstance :: Metric -> PublisherProducer
+publishInstance :: Metric -> Publisher ()
 publishInstance m@Metric{..} = do
     let baseMap = getSourceMap m
     let names = ["instance_vcpus", "instance_ram", "instance_disk", "instance_flavor"]
@@ -192,19 +191,19 @@ publishInstance m@Metric{..} = do
                 let instanceType' = siphash $ T.encodeUtf8 instanceType
                 let payloads = [instanceVcpus, instanceRam, instanceDisk + instanceEphemeral, instanceType']
                 forM_ (zip3 addrs sds payloads) $ \(addr, sd, p) -> do
-                    yield (addr, Left sd)
-                    yield (addr, Right (SimplePoint addr metricTimeStamp p))
+                    collectSource addr sd
+                    collectSimple (SimplePoint addr metricTimeStamp p)
     else
         liftIO $ alertM "Ceilometer.Process.publishInstance"
             "Failure to convert all sourceMaps to SourceDicts for instance pollster"
 
-publishVolumeEvent :: Metric -> PublisherProducer
+publishVolumeEvent :: Metric -> Publisher ()
 publishVolumeEvent = publishEvent getVolumePayload
 
-publishIpEvent :: Metric -> PublisherProducer
+publishIpEvent :: Metric -> Publisher ()
 publishIpEvent = publishEvent getIpPayload
 
-publishEvent :: (Metric -> IO (Maybe Word64)) -> Metric -> PublisherProducer
+publishEvent :: (Metric -> IO (Maybe Word64)) -> Metric -> Publisher ()
 publishEvent f m@Metric{..} = do
     p <- liftIO $ f m
     case p of
@@ -214,8 +213,8 @@ publishEvent f m@Metric{..} = do
             case sd of
                 Just sd' -> do
                     let addr = getAddress m metricName
-                    yield (addr, Left sd')
-                    yield (addr, Right (SimplePoint addr metricTimeStamp compoundPayload))
+                    collectSource addr sd'
+                    collectSimple (SimplePoint addr metricTimeStamp compoundPayload)
                 Nothing -> return ()
 
 getVolumePayload :: Metric -> IO (Maybe Word64)
