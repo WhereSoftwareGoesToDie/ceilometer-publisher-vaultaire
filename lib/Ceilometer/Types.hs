@@ -37,14 +37,13 @@ data CeilometerOptions = CeilometerOptions
     , rabbitHost  :: String
     , rabbitHa    :: Bool
     , rabbitUseSSL :: Bool
-    , rabbitExchange   :: Text
+    , rabbitQueue   :: Text
     , rabbitPollPeriod :: Int
     }
 
 data CeilometerState = CeilometerState
     { ceilometerMessageConn  :: Connection
     , ceilometerMessageChan  :: Channel
-    , ceilometerMessageQueue :: Text
     }
 
 type Publisher = Collector CeilometerOptions CeilometerState IO

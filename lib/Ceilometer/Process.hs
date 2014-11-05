@@ -61,11 +61,11 @@ runPublisher = runCollector parseOptions initState cleanup processSamples
             <> short 's'
             <> help "Use SSL for RabbitMQ")
         <*> (T.pack <$> strOption
-            (long "rabbit-exchange"
-             <> short 'x'
+            (long "rabbit-queue"
+             <> short 'q'
              <> value "ceilometer"
-             <> metavar "EXCHANGE"
-             <> help "RabbitMQ exchange"))
+             <> metavar "QUEUE"
+             <> help "RabbitMQ queue"))
         <*> option auto
             (long "poll-period"
              <> short 'p'
@@ -76,30 +76,35 @@ runPublisher = runCollector parseOptions initState cleanup processSamples
         putStrLn "password?"
         password <- T.pack <$> getLine
         conn <- openConnection rabbitHost rabbitVHost rabbitLogin password
+        infoM "Ceilometer.Process.initState" "Connected to RabbitMQ server"
         chan <- openChannel conn
-        (q, _, _) <- declareQueue chan newQueue
-        bindQueue chan q rabbitExchange ""
-        return $ CeilometerState conn chan q
-
+        infoM "Ceilometer.Process.initState" "Opened channel"
+        return $ CeilometerState conn chan
     cleanup = do
-        (_, CeilometerState conn _ _) <- get
+        (_, CeilometerState conn _ ) <- get
         liftIO $ closeConnection conn
 
 processSamples :: Publisher ()
-processSamples = forever $ do
+processSamples = do
     (_, CeilometerOptions{..}) <- ask
     (_, CeilometerState{..}) <- get
-    msg <- liftIO $ getMsg ceilometerMessageChan Ack ceilometerMessageQueue
-    case msg of
-        Nothing          -> liftIO $ threadDelay rabbitPollPeriod
-        Just (msg', env) -> do
-            processSample $ msgBody msg'
-            liftIO $ ackEnv env
+    forever $ do
+        liftIO $ infoM "Ceilometer.Process.processSamples" "Waiting for message"
+        msg <- liftIO $ getMsg ceilometerMessageChan Ack rabbitQueue        
+        case msg of
+            Nothing          -> liftIO $ do
+                infoM "Ceilometer.Process.processSamples" $ concat ["No message received, sleeping for ", show rabbitPollPeriod, " us"]
+                threadDelay rabbitPollPeriod
+            Just (msg', env) -> do
+                liftIO $ infoM "Ceilometer.Process.processSamples" "received message"
+                processSample $ msgBody msg'
+                liftIO $ ackEnv env
 
 processSample :: L.ByteString -> Publisher ()
-processSample bs =
+processSample bs = do
+    liftIO $ infoM "Ceilometer.Process.processSample" "decoding message"
     case decode bs of
-        Nothing           -> liftIO $ alertM "Ceilometer.Process.processSample" $ "Failed to parse: " ++ show bs
+        Nothing           -> liftIO $ alertM "Ceilometer.Process.processSample" $ "Failed to parse: " ++ L.unpack bs
         Just m@Metric{..} -> case (metricName, isEvent m) of
             ("instance", False) -> publishInstance m
             ("cpu", False) -> publishBasePollster m
