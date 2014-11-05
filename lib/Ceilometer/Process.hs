@@ -63,7 +63,7 @@ runPublisher = runCollector parseOptions initState cleanup processSamples
         <*> (T.pack <$> strOption
             (long "rabbit-queue"
              <> short 'q'
-             <> value "ceilometer"
+             <> value "metering"
              <> metavar "QUEUE"
              <> help "RabbitMQ queue"))
         <*> option auto
