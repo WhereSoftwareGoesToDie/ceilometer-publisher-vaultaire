@@ -34,6 +34,7 @@ install:
   - 'cabal-$CABALVER sandbox add-source ../vaultaire-collector-common/'
   - 'cabal-$CABALVER sandbox add-source ../vaultaire-common/'
   - 'cabal-$CABALVER sandbox add-source ../marquise/'
+  - 'cabal-$CABALVER configure --enable-tests'
   - 'cabal-$CABALVER install --only-dependencies --enable-tests --enable-benchmarks'
 
 script:
