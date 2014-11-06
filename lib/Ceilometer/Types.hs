@@ -1,4 +1,7 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE
+    OverloadedStrings
+  , TupleSections
+  #-}
 
 module Ceilometer.Types where
 
@@ -6,12 +9,32 @@ import           Control.Applicative
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.HashMap.Strict(HashMap)
+import           Data.Maybe
 import           Data.Text(Text)
+import qualified Data.Text as T
+import           Data.Time.Clock
+import           Data.Time.Format
 import           Data.Word
 import           Network.AMQP
+import           System.Locale
 
 import           Vaultaire.Collector.Common.Types
 import           Vaultaire.Types
+
+newtype CeilometerTime = CeilometerTime UTCTime
+
+instance Read CeilometerTime where
+    readsPrec _ s = maybeToList $ (,"") <$> CeilometerTime <$> parse s
+      where
+        parse :: String -> Maybe UTCTime
+        parse x  =  parseTime defaultTimeLocale "%FT%T%QZ" x
+                <|> parseTime defaultTimeLocale "%F %T%Q" x
+
+instance FromJSON CeilometerTime where
+    parseJSON (String t) = pure $ read $ T.unpack t
+
+ceilometerToTimeStamp :: CeilometerTime -> TimeStamp
+ceilometerToTimeStamp (CeilometerTime t) = convertToTimeStamp t
 
 data Metric = Metric
     { metricName        :: Text
@@ -48,6 +71,8 @@ data CeilometerState = CeilometerState
 
 type Publisher = Collector CeilometerOptions CeilometerState IO
 
+type PublicationData = Publisher [(Address, SourceDict, TimeStamp, Word64)]
+
 instance FromJSON Metric where
     parseJSON (Object s) = Metric
         <$> s .: "name"
@@ -56,7 +81,7 @@ instance FromJSON Metric where
         <*> s .: "volume"
         <*> s .: "project_id"
         <*> s .: "resource_id"
-        <*> (convertToTimeStamp <$> s .: "timestamp")
+        <*> (ceilometerToTimeStamp <$> s .: "timestamp")
         <*> s .: "resource_metadata"
     parseJSON o = error $ "Cannot parse metrics from non-objects. Given: " ++ show o
 

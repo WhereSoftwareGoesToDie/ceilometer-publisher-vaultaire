@@ -17,6 +17,7 @@ import qualified Data.ByteString as S
 import qualified Data.ByteString.Lazy.Char8 as L
 import           Data.HashMap.Strict(HashMap)
 import qualified Data.HashMap.Strict as H
+import           Data.List
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Word
@@ -33,7 +34,7 @@ import           Vaultaire.Collector.Common.Process
 import           Ceilometer.Types
 
 runPublisher :: IO ()
-runPublisher = runCollector parseOptions initState cleanup processSamples
+runPublisher = runCollector parseOptions initState cleanup publishSamples
   where
     parseOptions = CeilometerOptions
         <$> (T.pack <$> strOption
@@ -84,37 +85,43 @@ runPublisher = runCollector parseOptions initState cleanup processSamples
         (_, CeilometerState conn _ ) <- get
         liftIO $ closeConnection conn
 
-processSamples :: Publisher ()
-processSamples = do
+publishSamples :: Publisher ()
+publishSamples = do
     (_, CeilometerOptions{..}) <- ask
     (_, CeilometerState{..}) <- get
     forever $ do
         liftIO $ infoM "Ceilometer.Process.processSamples" "Waiting for message"
-        msg <- liftIO $ getMsg ceilometerMessageChan Ack rabbitQueue        
+        msg <- liftIO $ getMsg ceilometerMessageChan Ack rabbitQueue
         case msg of
             Nothing          -> liftIO $ do
                 infoM "Ceilometer.Process.processSamples" $ concat ["No message received, sleeping for ", show rabbitPollPeriod, " us"]
                 threadDelay rabbitPollPeriod
             Just (msg', env) -> do
                 liftIO $ infoM "Ceilometer.Process.processSamples" "received message"
-                processSample $ msgBody msg'
+                tuples <- processSample $ msgBody msg'
+                forM_ tuples (\(addr, sd, ts, p) -> collectSource addr sd >> collectSimple (SimplePoint addr ts p))
                 liftIO $ ackEnv env
 
-processSample :: L.ByteString -> Publisher ()
+processSample :: L.ByteString -> PublicationData
 processSample bs = do
     liftIO $ infoM "Ceilometer.Process.processSample" "decoding message"
     case decode bs of
-        Nothing           -> liftIO $ alertM "Ceilometer.Process.processSample" $ "Failed to parse: " ++ L.unpack bs
+        Nothing           -> do
+            liftIO $ alertM "Ceilometer.Process.processSample" $ "Failed to parse: " ++ L.unpack bs
+            return []
         Just m@Metric{..} -> case (metricName, isEvent m) of
-            ("instance", False) -> publishInstance m
-            ("cpu", False) -> publishBasePollster m
-            ("disk.write.bytes", False) -> publishBasePollster m
-            ("disk.read.bytes", False) -> publishBasePollster m
-            ("network.incoming.bytes", False) -> publishBasePollster m
-            ("network.outgoing.bytes", False) -> publishBasePollster m
-            ("ip.floating", True) -> publishIpEvent m
-            ("volume.size", True) -> publishVolumeEvent m
-            (x, y) -> liftIO $ infoM "Ceilometer.Process.processSample" $ concat ["Unsupported metric: ", show x, " event: ", show y]
+            ("instance", False) -> processInstance m
+            ("cpu", False) -> processBasePollster m
+            ("disk.write.bytes", False) -> processBasePollster m
+            ("disk.read.bytes", False) -> processBasePollster m
+            ("network.incoming.bytes", False) -> processBasePollster m
+            ("network.outgoing.bytes", False) -> processBasePollster m
+            ("ip.floating", True) -> processIpEvent m
+            ("volume.size", True) -> processVolumeEvent m
+            (x, y) -> do
+                liftIO $ infoM "Ceilometer.Process.processSample" $ concat ["Unsupported metric: ", show x, " event: ", show y]
+                return []
+
 
 isEvent :: Metric -> Bool
 isEvent m = H.member "event_type" $ metricMetadata m
@@ -167,18 +174,17 @@ getIdElements m@Metric{..} name =
 getAddress :: Metric -> Text -> Address
 getAddress m name = hashIdentifier $ T.encodeUtf8 $ mconcat $ getIdElements m name
 
-publishBasePollster :: Metric -> Publisher ()
-publishBasePollster m@Metric{..} = do
+processBasePollster :: Metric -> PublicationData
+processBasePollster m@Metric{..} = do
     sd <- liftIO $ mapToSourceDict $ getSourceMap m
     case sd of
         Just sd' -> do
             let addr = getAddress m metricName
-            collectSource addr sd'
-            collectSimple (SimplePoint addr metricTimeStamp metricPayload)
-        Nothing -> return ()
+            return [(addr, sd', metricTimeStamp, metricPayload)]
+        Nothing -> return []
 
-publishInstance :: Metric -> Publisher ()
-publishInstance m@Metric{..} = do
+processInstance :: Metric -> PublicationData
+processInstance m@Metric{..} = do
     let baseMap = getSourceMap m
     let names = ["instance_vcpus", "instance_ram", "instance_disk", "instance_flavor"]
     let uoms  = ["vcpu"          , "MB"          , "GB"           , "instance"       ]
@@ -189,42 +195,42 @@ publishInstance m@Metric{..} = do
 
     if length sds == 4 then
         case fromJSON $ fromJust $ H.lookup "flavor" metricMetadata of
-            Error e -> liftIO $ alertM "Ceilometer.Process.publishInstance" $
-                "Failed to parse flavor sub-object for instance pollster" ++ show e
+            Error e -> do
+                liftIO $ alertM "Ceilometer.Process.processInstance" $
+                    "Failed to parse flavor sub-object for instance pollster" ++ show e
+                return []
             Success Flavor{..} -> do
                 let (String instanceType) = fromJust $ H.lookup "instance_type" metricMetadata
                 let instanceType' = siphash $ T.encodeUtf8 instanceType
                 let payloads = [instanceVcpus, instanceRam, instanceDisk + instanceEphemeral, instanceType']
-                forM_ (zip3 addrs sds payloads) $ \(addr, sd, p) -> do
-                    collectSource addr sd
-                    collectSimple (SimplePoint addr metricTimeStamp p)
-    else
-        liftIO $ alertM "Ceilometer.Process.publishInstance"
+                return (zip4 addrs sds (repeat metricTimeStamp) payloads)
+    else do
+        liftIO $ alertM "Ceilometer.Process.processInstance"
             "Failure to convert all sourceMaps to SourceDicts for instance pollster"
+        return []
 
-publishVolumeEvent :: Metric -> Publisher ()
-publishVolumeEvent = publishEvent getVolumePayload
+processVolumeEvent :: Metric -> PublicationData
+processVolumeEvent = processEvent getVolumePayload
 
-publishIpEvent :: Metric -> Publisher ()
-publishIpEvent = publishEvent getIpPayload
+processIpEvent :: Metric -> PublicationData
+processIpEvent = processEvent getIpPayload
 
-publishEvent :: (Metric -> IO (Maybe Word64)) -> Metric -> Publisher ()
-publishEvent f m@Metric{..} = do
+processEvent :: (Metric -> IO (Maybe Word64)) -> Metric -> PublicationData
+processEvent f m@Metric{..} = do
     p <- liftIO $ f m
     case p of
-        Nothing -> return ()
+        Nothing -> return []
         Just compoundPayload -> do
             sd <- liftIO $ mapToSourceDict $ getSourceMap m
             case sd of
                 Just sd' -> do
                     let addr = getAddress m metricName
-                    collectSource addr sd'
-                    collectSimple (SimplePoint addr metricTimeStamp compoundPayload)
-                Nothing -> return ()
+                    return [(addr, sd', metricTimeStamp, compoundPayload)]
+                Nothing -> return []
 
 getVolumePayload :: Metric -> IO (Maybe Word64)
 getVolumePayload m@Metric{..} = do
-    let [_, verb, endpoint, _] = T.splitOn "." $ fromJust $ getEventType m
+    let _:verb:endpoint:_ = T.splitOn "." $ fromJust $ getEventType m
     let (String status)  = fromJust $ H.lookup "status" metricMetadata
     statusValue <- case status of
         "available" -> return 1

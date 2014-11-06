@@ -2,7 +2,7 @@
 --   For further documentation, see http://haskell.org/cabal/users-guide/
 
 name:                ceilometer-publisher-vaultaire
-version:             0.0.3
+version:             0.0.4
 -- synopsis:            
 -- description:         
 license:             BSD3
@@ -33,6 +33,8 @@ library
                      marquise,
                      amqp,
                      optparse-applicative,
+                     time,
+                     old-locale,
                      mtl,
                      vaultaire-collector-common,
                      vaultaire-common
@@ -63,3 +65,24 @@ executable ceilometer-publisher-vaultaire
                      -fwarn-tabs
 
   ghc-prof-options:  -fprof-auto
+
+test-suite           tests
+  hs-source-dirs:    test
+  main-is:           Main.hs
+  type:              exitcode-stdio-1.0
+  default-language:  Haskell2010
+  build-depends:     base >=3 && <5,
+                     containers >=0.5 && <0.6,
+                     mtl,
+                     pipes,
+                     time,
+                     hspec,
+                     QuickCheck,
+                     bytestring,
+                     ceilometer-publisher-vaultaire,
+                     vaultaire-common,
+                     vaultaire-collector-common,
+                     marquise >= 3.1.0
+
+  ghc-options:       -threaded
+  ghc-prof-options:  -auto-all
