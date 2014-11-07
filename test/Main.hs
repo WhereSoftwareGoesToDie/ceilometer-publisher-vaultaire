@@ -19,7 +19,7 @@ runTestPublisher :: Publisher () -> IO ()
 runTestPublisher = runCollector (pure $ CeilometerOptions "" "" "" True True "" 0) (\_ -> return $ CeilometerState undefined undefined) (return ())
 
 main = runTestPublisher $ do
-    s <- liftIO $ BSL.readFile "../../../test/volume.json"
+    s <- liftIO $ BSL.readFile "test/json_files/volume.json"
     processedVolume <- processSample s
     liftIO $ case processedVolume of
         [] -> putStrLn "volume failed to process"
