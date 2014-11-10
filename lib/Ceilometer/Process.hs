@@ -105,11 +105,11 @@ publishSamples = do
 processSample :: L.ByteString -> PublicationData
 processSample bs = do
     liftIO $ infoM "Ceilometer.Process.processSample" "decoding message"
-    case decode bs of
-        Nothing           -> do
-            liftIO $ alertM "Ceilometer.Process.processSample" $ "Failed to parse: " ++ L.unpack bs
+    case eitherDecode bs of
+        Left e             -> do
+            liftIO $ alertM "Ceilometer.Process.processSample" $ concat ["Failed to parse: " , L.unpack bs, " Error: ", e]
             return []
-        Just m@Metric{..} -> case (metricName, isEvent m) of
+        Right m@Metric{..} -> case (metricName, isEvent m) of
             ("instance", False) -> processInstance m
             ("cpu", False) -> processBasePollster m
             ("disk.write.bytes", False) -> processBasePollster m
