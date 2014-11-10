@@ -36,7 +36,7 @@ library
                      time,
                      old-locale,
                      mtl,
-                     vaultaire-collector-common,
+                     vaultaire-collector-common >= 0.2.0,
                      vaultaire-common
 
   ghc-options:       -O2
@@ -76,9 +76,11 @@ test-suite           tests
                      mtl,
                      pipes,
                      time,
+                     HUnit,
                      hspec,
                      QuickCheck,
                      bytestring,
+                     unordered-containers,
                      ceilometer-publisher-vaultaire,
                      vaultaire-common,
                      vaultaire-collector-common,
