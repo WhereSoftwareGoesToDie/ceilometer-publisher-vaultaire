@@ -28,7 +28,9 @@ instance Read CeilometerTime where
     readsPrec _ s = maybeToList $ (,"") <$> CeilometerTime <$> parse' s
       where
         parse' :: String -> Maybe UTCTime
-        parse' x  =  parseTime defaultTimeLocale "%FT%T%QZ" x
+        parse' x  = parseTime defaultTimeLocale "%FT%T%QZ" x
+                <|> parseTime defaultTimeLocale "%FT%T%Q%z" x
+                <|> parseTime defaultTimeLocale "%F %T%Q%z" x
                 <|> parseTime defaultTimeLocale "%F %T%Q" x
 
 instance FromJSON CeilometerTime where
