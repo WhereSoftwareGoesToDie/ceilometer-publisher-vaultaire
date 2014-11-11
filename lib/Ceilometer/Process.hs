@@ -245,6 +245,8 @@ getVolumePayload m@Metric{..} = do
         "create" -> return 1
         "resize" -> return 2
         "delete" -> return 3
+        "attach" -> infoM "Ceilometer.Process.getVolumePayload" "Ignoring volume attach event" >> return 0
+        "detach" -> infoM "Ceilometer.Process.getVolumePayload" "Ignoring volume detach event" >> return 0
         x        -> do
             alertM "Ceilometer.Process.getVolumePayload" $
                 "Invalid verb for volume event: " ++ show x
