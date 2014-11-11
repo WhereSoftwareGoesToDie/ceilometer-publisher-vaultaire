@@ -157,13 +157,12 @@ getSourceMap m@Metric{..} =
                , ("metric_name",  metricName)
                , ("metric_unit",  metricUOM)
                , ("metric_type",  metricType)
-               , ("display_name", displayName)
                ]
         displayName = case H.lookup "display_name" metricMetadata of
-            Just (String x) -> x
-            _               -> ""
+            Just (String x) -> [("display_name", x)]
+            _               -> []
         counter = [("_counter", "1") | metricType == "cumulative"]
-    in H.fromList $ counter <> base
+    in H.fromList $ counter <> base <> displayName
 
 mapToSourceDict :: HashMap Text Text -> IO (Maybe SourceDict)
 mapToSourceDict sourceMap = case makeSourceDict sourceMap of
@@ -233,16 +232,13 @@ processIpEvent = processEvent getIpPayload
 
 processEvent :: (Metric -> IO (Maybe Word64)) -> Metric -> PublicationData
 processEvent f m@Metric{..} = do
-    p <- liftIO $ f m
-    case p of
-        Nothing -> return []
-        Just compoundPayload -> do
-            sd <- liftIO $ mapToSourceDict $ getSourceMap m
-            case sd of
-                Just sd' -> do
-                    let addr = getAddress m metricName
-                    return [(addr, sd', metricTimeStamp, compoundPayload)]
-                Nothing -> return []
+    p  <- liftIO $ f m
+    sd <- liftIO $ mapToSourceDict $ getSourceMap m
+    return $ case (p, sd) of
+        (Just compoundPayload, Just sd') ->
+            let addr = getAddress m metricName
+            in [(addr, sd', metricTimeStamp, compoundPayload)]
+        _ -> []
 
 getVolumePayload :: Metric -> IO (Maybe Word64)
 getVolumePayload m@Metric{..} = do
