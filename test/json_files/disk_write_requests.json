@@ -1,0 +1,43 @@
+{
+    "id": "e83fc9ea-4a93-11e4-b541-ecf4bbc1fce4",
+    "name": "disk.write.requests",
+    "project_id": "1dcad6d961334ccc8a3d55ba017ffe80",
+    "resource_id": "093517a5-f3bd-4389-ad50-6cf86b3e6396",
+    "resource_metadata": {
+        "OS-EXT-AZ:availability_zone": "syd1",
+        "disk_gb": 1,
+        "display_name": "sio-resh-093517a5-f3bd-4389-ad50-6cf86b3e6396",
+        "ephemeral_gb": 0,
+        "flavor": {
+            "disk": 1,
+            "ephemeral": 0,
+            "id": "1",
+            "links": [
+                {
+                    "href": "http://nova.int.syd1.prod.os.anchor.net.au:8774/bd3f518204b54407854a7dd8d1c49931/flavors/1",
+                    "rel": "bookmark"
+                }
+            ],
+            "name": "m1.tiny",
+            "ram": 512,
+            "vcpus": 1
+        },
+        "host": "f3c773da31821e60fcb75af58952096da520679f176605c21033feac",
+        "image": null,
+        "image_ref": null,
+        "image_ref_url": null,
+        "instance_type": "1",
+        "kernel_id": null,
+        "memory_mb": 512,
+        "name": "instance-000008ff",
+        "ramdisk_id": null,
+        "root_gb": 1,
+        "vcpus": 1
+    },
+    "source": "openstack",
+    "timestamp": "2014-10-03T00:26:24Z",
+    "type": "cumulative",
+    "unit": "request",
+    "user_id": "1f6f57489d404fe293c65d19e9b31df2",
+    "volume": 3624
+}

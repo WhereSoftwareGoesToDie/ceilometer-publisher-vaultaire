@@ -1,0 +1,43 @@
+{
+    "id": "e943094c-4a93-11e4-b541-ecf4bbc1fce4",
+    "name": "instance:m1.tiny",
+    "project_id": "5e4b3c183e3f4c4aa5e5e8b78a6c80c2",
+    "resource_id": "d94bc995-a2ab-4a9a-9405-fbec69828bc7",
+    "resource_metadata": {
+        "OS-EXT-AZ:availability_zone": "syd1",
+        "disk_gb": 1,
+        "display_name": "louie.entropyonwheels.com",
+        "ephemeral_gb": 0,
+        "flavor": {
+            "disk": 1,
+            "ephemeral": 0,
+            "id": "1",
+            "links": [
+                {
+                    "href": "http://nova.int.syd1.prod.os.anchor.net.au:8774/bd3f518204b54407854a7dd8d1c49931/flavors/1",
+                    "rel": "bookmark"
+                }
+            ],
+            "name": "m1.tiny",
+            "ram": 512,
+            "vcpus": 1
+        },
+        "host": "25e409871a7dc4f271bb08de1c4f6beaf87c53f9ffef7cef5693bc5a",
+        "image": null,
+        "image_ref": null,
+        "image_ref_url": null,
+        "instance_type": "1",
+        "kernel_id": null,
+        "memory_mb": 512,
+        "name": "instance-000002cb",
+        "ramdisk_id": null,
+        "root_gb": 1,
+        "vcpus": 1
+    },
+    "source": "openstack",
+    "timestamp": "2014-10-03T00:26:26Z",
+    "type": "gauge",
+    "unit": "instance",
+    "user_id": "29ce915f6f80426f8d059e6495e4441a",
+    "volume": 1
+}
