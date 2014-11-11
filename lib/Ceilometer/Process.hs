@@ -94,12 +94,15 @@ runPublisher = runCollector parseOptions initState cleanup publishSamples
             msg <- liftIO $ getMsg ceilometerMessageChan Ack rabbitQueue
             case msg of
                 Nothing          -> liftIO $ do
-                    infoM "Ceilometer.Process.publishSamples" $ concat ["No message received, sleeping for ", show rabbitPollPeriod, " us"]
+                    infoM "Ceilometer.Process.publishSamples" $
+                        "No message received, sleeping for " <> show rabbitPollPeriod <> " us"
                     threadDelay rabbitPollPeriod
                 Just (msg', env) -> do
                     liftIO $ infoM "Ceilometer.Process.publishSamples" "received message"
                     tuples <- processSample $ msgBody msg'
-                    forM_ tuples (\(addr, sd, ts, p) -> collectSource addr sd >> collectSimple (SimplePoint addr ts p))
+                    forM_ tuples (\(addr, sd, ts, p) -> do
+                        collectSource addr sd
+                        collectSimple (SimplePoint addr ts p))
                     liftIO $ ackEnv env
 
 -- | Takes in a JSON Object and processes it into a list of
@@ -109,7 +112,8 @@ processSample bs = do
     liftIO $ infoM "Ceilometer.Process.processSample" "decoding message"
     case eitherDecode bs of
         Left e             -> do
-            liftIO $ alertM "Ceilometer.Process.processSample" $ concat ["Failed to parse: " , L.unpack bs, " Error: ", e]
+            liftIO $ alertM "Ceilometer.Process.processSample" $
+                "Failed to parse: " <> L.unpack bs <> " Error: " <> e
             return []
         Right m@Metric{..} -> case (metricName, isEvent m) of
             ("instance", False) -> processInstance m
@@ -121,7 +125,8 @@ processSample bs = do
             ("ip.floating", True) -> processIpEvent m
             ("volume.size", True) -> processVolumeEvent m
             (x, y) -> do
-                liftIO $ infoM "Ceilometer.Process.processSample" $ concat ["Unsupported metric: ", show x, " event: ", show y]
+                liftIO $ infoM "Ceilometer.Process.processSample" $
+                    "Unsupported metric: " <> show x <> " event: " <> show y
                 return []
 
 isEvent :: Metric -> Bool
@@ -153,13 +158,13 @@ getSourceMap m@Metric{..} =
             Just (String x) -> x
             _               -> ""
         counter = [("_counter", "1") | metricType == "cumulative"]
-    in H.fromList $ counter ++ base
+    in H.fromList $ counter <> base
 
 mapToSourceDict :: HashMap Text Text -> IO (Maybe SourceDict)
 mapToSourceDict sourceMap = case makeSourceDict sourceMap of
     Left err -> do
         alertM "Ceilometer.Process.getSourceDict" $
-            concat ["Failed to create sourcedict from ", show sourceMap, " error: ", err]
+            "Failed to create sourcedict from " <> show sourceMap <> " error: " <> err
         return Nothing
     Right sd -> return $ Just sd
 
@@ -190,8 +195,10 @@ processInstance m@Metric{..} = do
     let names = ["instance_vcpus", "instance_ram", "instance_disk", "instance_flavor"]
     let uoms  = ["vcpu"          , "MB"          , "GB"           , "instance"       ]
     let addrs = map (getAddress m) names
-    let sourceMaps = map (\(name, uom) -> H.insert "metric_unit" uom $ H.insert "metric_name" name baseMap)
-            (zip names uoms) --Modify the metric-specific sourcedict fields
+    --Modify the metric-specific sourcedict fields
+    let sourceMaps = map (\(name, uom) -> H.insert "metric_unit" uom
+                                        $ H.insert "metric_name" name baseMap)
+                         (zip names uoms)
     --Filter out any sourcedicts which failed to process
     --Each individual failure is logged in mapToSourceDict
     sds <- liftIO $ catMaybes <$> forM sourceMaps mapToSourceDict
@@ -200,13 +207,14 @@ processInstance m@Metric{..} = do
         case fromJSON $ fromJust $ H.lookup "flavor" metricMetadata of
             Error e -> do
                 liftIO $ alertM "Ceilometer.Process.processInstance" $
-                    "Failed to parse flavor sub-object for instance pollster" ++ show e
+                    "Failed to parse flavor sub-object for instance pollster" <> show e
                 return []
-            Success Flavor{..} -> do
+            Success Flavor{..} ->
                 let (String instanceType) = fromJust $ H.lookup "instance_type" metricMetadata
-                let instanceType' = siphash $ T.encodeUtf8 instanceType
-                let payloads = [instanceVcpus, instanceRam, instanceDisk + instanceEphemeral, instanceType']
-                return (zip4 addrs sds (repeat metricTimeStamp) payloads)
+                    instanceType' = siphash $ T.encodeUtf8 instanceType
+                    diskTotal = instanceDisk + instanceEphemeral
+                    payloads = [instanceVcpus, instanceRam, diskTotal, instanceType']
+                in return (zip4 addrs sds (repeat metricTimeStamp) payloads)
     else do
         liftIO $ alertM "Ceilometer.Process.processInstance"
             "Failure to convert all sourceMaps to SourceDicts for instance pollster"
@@ -242,24 +250,28 @@ getVolumePayload m@Metric{..} = do
         "deleting"  -> return 4
         x           -> do
             alertM "Ceilometer.Process.getVolumePayload" $
-                "Invalid status for volume event: " ++ show x
+                "Invalid status for volume event: " <> show x
             return 0
     verbValue <- case verb of
         "create" -> return 1
         "resize" -> return 2
         "delete" -> return 3
-        "attach" -> infoM "Ceilometer.Process.getVolumePayload" "Ignoring volume attach event" >> return 0
-        "detach" -> infoM "Ceilometer.Process.getVolumePayload" "Ignoring volume detach event" >> return 0
+        "attach" -> infoM "Ceilometer.Process.getVolumePayload"
+                           "Ignoring volume attach event"
+                           >> return 0
+        "detach" -> infoM "Ceilometer.Process.getVolumePayload"
+                           "Ignoring volume detach event"
+                           >> return 0
         x        -> do
             alertM "Ceilometer.Process.getVolumePayload" $
-                "Invalid verb for volume event: " ++ show x
+                "Invalid verb for volume event: " <> show x
             return 0
     endpointValue <- case endpoint of
         "start" -> return 1
         "end"   -> return 2
         x       -> do
             alertM "Ceilometer.Process.getVolumePayload" $
-                "Invalid endpoint for volume event: " ++ show x
+                "Invalid endpoint for volume event: " <> show x
             return 0
     return $ if 0 `elem` [statusValue, verbValue, endpointValue] then
         Nothing
@@ -278,21 +290,21 @@ getIpPayload m@Metric{..} = do
         "DOWN"   -> return 2
         x        -> do
             alertM "Ceilometer.Process.getIpPayload" $
-                "Invalid status for ip event: " ++ show x
+                "Invalid status for ip event: " <> show x
             return 0
     verbValue <- case verb of
         "create" -> return 1
         "update" -> return 2
         x        -> do
             alertM "Ceilometer.Process.getIpPayload" $
-                "Invalid verb for ip event: " ++ show x
+                "Invalid verb for ip event: " <> show x
             return 0
     endpointValue <- case endpoint of
         "start" -> return 1
         "end"   -> return 2
         x       -> do
             alertM "Ceilometer.Process.getIpPayload" $
-                "Invalid endpoint for ip event: " ++ show x
+                "Invalid endpoint for ip event: " <> show x
             return 0
     return $ if 0 `elem` [statusValue, verbValue, endpointValue] then
         Nothing
