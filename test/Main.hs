@@ -68,8 +68,7 @@ expectedIPFloatingHashmap = H.fromList
     ("resource_id", "d1d96a82-c1ce-4feb-acc1-227a50be9b9f"),
     ("metric_name", "ip.floating"),
     ("metric_unit", "ip"),
-    ("metric_type", "gauge"),
-    ("display_name", "")
+    ("metric_type", "gauge")
   ]
 
 expectedIPFloatingSd :: SourceDict
@@ -165,7 +164,6 @@ expectedNetworkRxHashmap = H.fromList
   [ ("metric_name", "network.incoming.bytes"),
     ("project_id", "da1ea3cce8b545f382e0e1ca8f863c22"),
     ("resource_id", "instance-000009fd-d9067afa-c79c-4a37-8181-84f612da2d48-tapad6aebca-fe"),
-    ("display_name", ""),
     ("metric_type", "cumulative"),
     ("metric_unit", "B"),
     ("_compound", "0"),
@@ -187,7 +185,6 @@ expectedNetworkTxHashmap = H.fromList
   [ ("metric_name", "network.outgoing.bytes"),
     ("project_id", "da1ea3cce8b545f382e0e1ca8f863c22"),
     ("resource_id", "instance-000009fd-d9067afa-c79c-4a37-8181-84f612da2d48-tapad6aebca-fe"),
-    ("display_name", ""),
     ("metric_type", "cumulative"),
     ("metric_unit", "B"),
     ("_compound", "0"),
