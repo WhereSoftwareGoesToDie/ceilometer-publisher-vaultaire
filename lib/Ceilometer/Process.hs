@@ -3,7 +3,7 @@
   , RecordWildCards
   #-}
 
-module Ceilometer.Process where
+module Ceilometer.Process(runPublisher, processSample, siphash) where
 
 import           Control.Applicative
 import           Control.Concurrent hiding (yield)
@@ -33,6 +33,9 @@ import           Vaultaire.Collector.Common.Process
 
 import           Ceilometer.Types
 
+-- | Core entry point for Ceilometer.Process
+--   Processes JSON objects from the configured queue and publishes
+--   SimplePoints and SourceDicts to the vault
 runPublisher :: IO ()
 runPublisher = runCollector parseOptions initState cleanup publishSamples
   where
@@ -84,24 +87,24 @@ runPublisher = runCollector parseOptions initState cleanup publishSamples
     cleanup = do
         (_, CeilometerState conn _ ) <- get
         liftIO $ closeConnection conn
+    publishSamples = do
+        (_, CeilometerOptions{..}) <- ask
+        (_, CeilometerState{..}) <- get
+        forever $ do
+            liftIO $ infoM "Ceilometer.Process.publishSamples" "Waiting for message"
+            msg <- liftIO $ getMsg ceilometerMessageChan Ack rabbitQueue
+            case msg of
+                Nothing          -> liftIO $ do
+                    infoM "Ceilometer.Process.publishSamples" $ concat ["No message received, sleeping for ", show rabbitPollPeriod, " us"]
+                    threadDelay rabbitPollPeriod
+                Just (msg', env) -> do
+                    liftIO $ infoM "Ceilometer.Process.publishSamples" "received message"
+                    tuples <- processSample $ msgBody msg'
+                    forM_ tuples (\(addr, sd, ts, p) -> collectSource addr sd >> collectSimple (SimplePoint addr ts p))
+                    liftIO $ ackEnv env
 
-publishSamples :: Publisher ()
-publishSamples = do
-    (_, CeilometerOptions{..}) <- ask
-    (_, CeilometerState{..}) <- get
-    forever $ do
-        liftIO $ infoM "Ceilometer.Process.processSamples" "Waiting for message"
-        msg <- liftIO $ getMsg ceilometerMessageChan Ack rabbitQueue
-        case msg of
-            Nothing          -> liftIO $ do
-                infoM "Ceilometer.Process.processSamples" $ concat ["No message received, sleeping for ", show rabbitPollPeriod, " us"]
-                threadDelay rabbitPollPeriod
-            Just (msg', env) -> do
-                liftIO $ infoM "Ceilometer.Process.processSamples" "received message"
-                tuples <- processSample $ msgBody msg'
-                forM_ tuples (\(addr, sd, ts, p) -> collectSource addr sd >> collectSimple (SimplePoint addr ts p))
-                liftIO $ ackEnv env
-
+-- | Takes in a JSON Object and processes it into a list of
+--   (Address, SourceDict, TimeStamp, Payload) tuples
 processSample :: L.ByteString -> PublicationData
 processSample bs = do
     liftIO $ infoM "Ceilometer.Process.processSample" "decoding message"
@@ -121,7 +124,6 @@ processSample bs = do
             (x, y) -> do
                 liftIO $ infoM "Ceilometer.Process.processSample" $ concat ["Unsupported metric: ", show x, " event: ", show y]
                 return []
-
 
 isEvent :: Metric -> Bool
 isEvent m = H.member "event_type" $ metricMetadata m
@@ -185,14 +187,16 @@ processBasePollster m@Metric{..} = do
 
 processInstance :: Metric -> PublicationData
 processInstance m@Metric{..} = do
-    let baseMap = getSourceMap m
+    let baseMap = getSourceMap m --The sourcedict for the 4 metrics is mostly shared
     let names = ["instance_vcpus", "instance_ram", "instance_disk", "instance_flavor"]
     let uoms  = ["vcpu"          , "MB"          , "GB"           , "instance"       ]
     let addrs = map (getAddress m) names
     let sourceMaps = map (\(name, uom) -> H.insert "metric_unit" uom $ H.insert "metric_name" name baseMap)
-            (zip names uoms)
+            (zip names uoms) --Modify the metric-specific sourcedict fields
+    --Filter out any sourcedicts which failed to process
+    --Each individual failure is logged in mapToSourceDict
     sds <- liftIO $ catMaybes <$> forM sourceMaps mapToSourceDict
-
+    --Check if all 4 metrics' sourcedicts successully parsed
     if length sds == 4 then
         case fromJSON $ fromJust $ H.lookup "flavor" metricMetadata of
             Error e -> do
@@ -306,5 +310,6 @@ constructCompoundPayload statusValue verbValue endpointValue rawPayload =
     in
         s + v + e + r + p
 
+-- | Canonical siphash with key = 0
 siphash :: S.ByteString -> Word64
 siphash x = let (SipHash h) = hash (SipKey 0 0) x in h
