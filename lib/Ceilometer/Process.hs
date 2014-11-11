@@ -134,6 +134,8 @@ processSample bs = do
                     "Unsupported metric: " <> show x <> " event: " <> show y
                 return []
 
+-- Utility
+
 isEvent :: Metric -> Bool
 isEvent m = H.member "event_type" $ metricMetadata m
 
@@ -148,6 +150,8 @@ isCompound m
     | isEvent m && metricName m == "volume.size" = True
     | otherwise                                  = False
 
+-- | Constructs the internal HashMap of a SourceDict for the given Metric
+--   Appropriately excludes optional fields when not present
 getSourceMap :: Metric -> HashMap Text Text
 getSourceMap m@Metric{..} =
     let base = [ ("_event", if isEvent m then "1" else "0")
@@ -164,6 +168,7 @@ getSourceMap m@Metric{..} =
         counter = [("_counter", "1") | metricType == "cumulative"]
     in H.fromList $ counter <> base <> displayName
 
+-- | Wrapped construction of a SourceDict with logging
 mapToSourceDict :: HashMap Text Text -> IO (Maybe SourceDict)
 mapToSourceDict sourceMap = case makeSourceDict sourceMap of
     Left err -> do
@@ -172,6 +177,7 @@ mapToSourceDict sourceMap = case makeSourceDict sourceMap of
         return Nothing
     Right sd -> return $ Just sd
 
+-- | Extracts the core identifying strings from the passed Metric
 getIdElements :: Metric -> Text -> [Text]
 getIdElements m@Metric{..} name =
     let base     = [metricProjectId, metricResourceId, metricUOM, metricType, name]
@@ -181,9 +187,17 @@ getIdElements m@Metric{..} name =
         compound = ["_compound" | isCompound m]
     in concat [base,event,compound]
 
+-- | Constructs a unique Address for a Metric from its identifying data
 getAddress :: Metric -> Text -> Address
 getAddress m name = hashIdentifier $ T.encodeUtf8 $ mconcat $ getIdElements m name
 
+-- | Canonical siphash with key = 0
+siphash :: S.ByteString -> Word64
+siphash x = let (SipHash h) = hash (SipKey 0 0) x in h
+
+-- Pollster based metrics
+
+-- | Processes a pollster with no special requirements
 processBasePollster :: Metric -> PublicationData
 processBasePollster m@Metric{..} = do
     sd <- liftIO $ mapToSourceDict $ getSourceMap m
@@ -193,6 +207,8 @@ processBasePollster m@Metric{..} = do
             return [(addr, sd', metricTimeStamp, metricPayload)]
         Nothing -> return []
 
+-- | Extracts vcpu, ram, disk and flavor data from an instance pollster
+--   Publishes each of these as their own metric with their own Address
 processInstance :: Metric -> PublicationData
 processInstance m@Metric{..} = do
     let baseMap = getSourceMap m --The sourcedict for the 4 metrics is mostly shared
@@ -224,22 +240,26 @@ processInstance m@Metric{..} = do
             "Failure to convert all sourceMaps to SourceDicts for instance pollster"
         return []
 
+-- Event based metrics
+
 processVolumeEvent :: Metric -> PublicationData
 processVolumeEvent = processEvent getVolumePayload
 
 processIpEvent :: Metric -> PublicationData
 processIpEvent = processEvent getIpPayload
 
+-- | Constructs the appropriate compound payload and vault data for an event
 processEvent :: (Metric -> IO (Maybe Word64)) -> Metric -> PublicationData
 processEvent f m@Metric{..} = do
     p  <- liftIO $ f m
     sd <- liftIO $ mapToSourceDict $ getSourceMap m
+    let addr = getAddress m metricName
     return $ case (p, sd) of
         (Just compoundPayload, Just sd') ->
-            let addr = getAddress m metricName
-            in [(addr, sd', metricTimeStamp, compoundPayload)]
+            [(addr, sd', metricTimeStamp, compoundPayload)]
         _ -> []
 
+-- | Constructs the compound payload for volume events
 getVolumePayload :: Metric -> IO (Maybe Word64)
 getVolumePayload m@Metric{..} = do
     let _:verb:endpoint:_ = T.splitOn "." $ fromJust $ getEventType m
@@ -279,9 +299,11 @@ getVolumePayload m@Metric{..} = do
     else
         Just $ constructCompoundPayload statusValue verbValue endpointValue metricPayload
 
+-- | An allocation has no 'value' per se, so we arbitarily use 1 
 ipRawPayload :: Word64
 ipRawPayload = 1
 
+-- | Constructs the compound payload for ip allocation events
 getIpPayload :: Metric -> IO (Maybe Word64)
 getIpPayload m@Metric{..} = do
     let _:verb:endpoint:_ = T.splitOn "." $ fromJust $ getEventType m
@@ -312,6 +334,7 @@ getIpPayload m@Metric{..} = do
     else
         Just $ constructCompoundPayload statusValue verbValue endpointValue ipRawPayload
 
+-- | Constructs a compound payload from components
 constructCompoundPayload :: Word64 -> Word64 -> Word64 -> Word64 -> Word64
 constructCompoundPayload statusValue verbValue endpointValue rawPayload =
     let s = statusValue
@@ -321,7 +344,3 @@ constructCompoundPayload statusValue verbValue endpointValue rawPayload =
         p = rawPayload `shift` 32
     in
         s + v + e + r + p
-
--- | Canonical siphash with key = 0
-siphash :: S.ByteString -> Word64
-siphash x = let (SipHash h) = hash (SipKey 0 0) x in h
