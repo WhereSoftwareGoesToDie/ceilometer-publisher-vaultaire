@@ -1,31 +1,30 @@
-{-# LANGUAGE
-    OverloadedStrings
-  , RecordWildCards
-  #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 
 module Ceilometer.Process(runPublisher, processSample, siphash) where
 
 import           Control.Applicative
-import           Control.Concurrent hiding (yield)
+import           Control.Concurrent                 hiding (yield)
 import           Control.Monad
 import           Control.Monad.Reader
 import           Control.Monad.State
-import           Crypto.MAC.SipHash(SipHash(..), SipKey(..), hash)
+import           Crypto.MAC.SipHash                 (SipHash (..), SipKey (..),
+                                                     hash)
 import           Data.Aeson
 import           Data.Bits
-import qualified Data.ByteString as S
-import qualified Data.ByteString.Lazy.Char8 as L
-import           Data.HashMap.Strict(HashMap)
-import qualified Data.HashMap.Strict as H
+import qualified Data.ByteString                    as S
+import qualified Data.ByteString.Lazy.Char8         as L
+import           Data.HashMap.Strict                (HashMap)
+import qualified Data.HashMap.Strict                as H
 import           Data.List
 import           Data.Maybe
 import           Data.Monoid
+import           Data.Text                          (Text)
+import qualified Data.Text                          as T
+import qualified Data.Text.Encoding                 as T
 import           Data.Word
-import           Data.Text(Text)
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
 import           Network.AMQP
-import           Options.Applicative hiding (Success)
+import           Options.Applicative                hiding (Success)
 import           System.Log.Logger
 
 import           Marquise.Client
