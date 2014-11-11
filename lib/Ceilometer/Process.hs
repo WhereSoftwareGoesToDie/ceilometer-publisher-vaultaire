@@ -263,7 +263,7 @@ getVolumePayload m@Metric{..} = do
 
 getIpPayload :: Metric -> IO (Maybe Word64)
 getIpPayload m@Metric{..} = do
-    let [_, verb, endpoint, _] = T.splitOn "." $ fromJust $ getEventType m
+    let _:verb:endpoint:_ = T.splitOn "." $ fromJust $ getEventType m
     let (String status)  = fromJust $ H.lookup "status" metricMetadata
     statusValue <- case status of
         "ACTIVE" -> return 1

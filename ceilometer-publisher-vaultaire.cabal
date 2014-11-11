@@ -80,6 +80,7 @@ test-suite           tests
                      hspec,
                      QuickCheck,
                      bytestring,
+                     text,
                      unordered-containers,
                      ceilometer-publisher-vaultaire,
                      vaultaire-common,
