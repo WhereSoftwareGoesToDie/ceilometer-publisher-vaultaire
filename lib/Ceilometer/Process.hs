@@ -22,6 +22,7 @@ import           Data.Monoid
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
 import qualified Data.Text.Encoding                 as T
+import qualified Data.Text.IO                       as T
 import           Data.Word
 import           Network.AMQP
 import           Options.Applicative                hiding (Success)
@@ -75,9 +76,13 @@ runPublisher = runCollector parseOptions initState cleanup publishSamples
              <> value 1000000
              <> metavar "POLL-PERIOD"
              <> help "Time to wait (in microseconds) before re-querying empty queue.")
+        <*> strOption
+            (long "password-file"
+             <> short 'f'
+             <> metavar "PASSWORD-FILE"
+             <> help "File containing the password to use for RabbitMQ")
     initState (_, CeilometerOptions{..}) = do
-        putStrLn "password?"
-        password <- T.pack <$> getLine
+        password <- T.readFile rabbitPasswordFile
         conn <- openConnection rabbitHost rabbitVHost rabbitLogin password
         infoM "Ceilometer.Process.initState" "Connected to RabbitMQ server"
         chan <- openChannel conn

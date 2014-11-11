@@ -69,6 +69,7 @@ data CeilometerOptions = CeilometerOptions
     , rabbitUseSSL :: Bool
     , rabbitQueue   :: Text
     , rabbitPollPeriod :: Int
+    , rabbitPasswordFile :: FilePath
     }
 
 data CeilometerState = CeilometerState
