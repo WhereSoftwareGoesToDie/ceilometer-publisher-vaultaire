@@ -261,6 +261,9 @@ getVolumePayload m@Metric{..} = do
     else
         Just $ constructCompoundPayload statusValue verbValue endpointValue metricPayload
 
+ipRawPayload :: Word64
+ipRawPayload = 1
+
 getIpPayload :: Metric -> IO (Maybe Word64)
 getIpPayload m@Metric{..} = do
     let _:verb:endpoint:_ = T.splitOn "." $ fromJust $ getEventType m
@@ -289,7 +292,7 @@ getIpPayload m@Metric{..} = do
     return $ if 0 `elem` [statusValue, verbValue, endpointValue] then
         Nothing
     else
-        Just $ constructCompoundPayload statusValue verbValue endpointValue 0
+        Just $ constructCompoundPayload statusValue verbValue endpointValue ipRawPayload
 
 constructCompoundPayload :: Word64 -> Word64 -> Word64 -> Word64 -> Word64
 constructCompoundPayload statusValue verbValue endpointValue rawPayload =
