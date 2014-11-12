@@ -26,6 +26,7 @@ import qualified Data.Text.IO                       as T
 import           Data.Word
 import           Network.AMQP
 import           Options.Applicative                hiding (Success)
+import           System.IO
 import           System.Log.Logger
 
 import           Marquise.Client
@@ -82,7 +83,7 @@ runPublisher = runCollector parseOptions initState cleanup publishSamples
              <> metavar "PASSWORD-FILE"
              <> help "File containing the password to use for RabbitMQ")
     initState (_, CeilometerOptions{..}) = do
-        password <- T.readFile rabbitPasswordFile
+        password <- withFile rabbitPasswordFile ReadMode T.hGetLine
         conn <- openConnection rabbitHost rabbitVHost rabbitLogin password
         infoM "Ceilometer.Process.initState" "Connected to RabbitMQ server"
         chan <- openChannel conn
