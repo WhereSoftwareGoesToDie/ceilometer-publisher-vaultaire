@@ -1,24 +1,24 @@
 {
-    "id": "31a00552-486c-11e4-b39f-525400f01ec9",
+    "id": "garlic",
     "name": "ip.floating",
-    "project_id": "aaaf752c50804cf3aad71b92e6ced65e",
-    "resource_id": "d1d96a82-c1ce-4feb-acc1-227a50be9b9f",
+    "project_id": "magic",
+    "resource_id": "magic",
     "resource_metadata": {
         "event_type": "floatingip.create.end",
         "fixed_ip_address": null,
-        "floating_ip_address": "110.173.152.166",
-        "floating_network_id": "3e7c812b-7e44-4255-9db0-8bfac34cf4b7",
-        "host": "network.a001.api.syd1.prod.os.anchor.net.au",
-        "id": "d1d96a82-c1ce-4feb-acc1-227a50be9b9f",
+        "floating_ip_address": "123.123.123.123",
+        "floating_network_id": "tumeric",
+        "host": "tragic",
+        "id": "garlic",
         "port_id": null,
         "router_id": null,
         "status": "DOWN",
-        "tenant_id": "aaaf752c50804cf3aad71b92e6ced65e"
+        "tenant_id": "magic"
     },
     "source": "openstack",
     "timestamp": "2014-09-22 07:35:03.030569",
     "type": "gauge",
     "unit": "ip",
-    "user_id": "d23fdb56933e41b58d2edebb57c1e8a6",
+    "user_id": "magic",
     "volume": 1
 }

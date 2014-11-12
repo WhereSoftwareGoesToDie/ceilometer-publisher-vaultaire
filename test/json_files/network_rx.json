@@ -1,20 +1,20 @@
 {
-    "id": "ba37392a-4a93-11e4-b541-ecf4bbc1fce4",
+    "id": "garlic",
     "name": "network.incoming.bytes",
-    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
-    "resource_id": "instance-000009fd-d9067afa-c79c-4a37-8181-84f612da2d48-tapad6aebca-fe",
+    "project_id": "magic",
+    "resource_id": "magic",
     "resource_metadata": {
         "fref": null,
-        "instance_id": "d9067afa-c79c-4a37-8181-84f612da2d48",
+        "instance_id": "magic",
         "instance_type": "2",
-        "mac": "fa:16:3e:ca:15:d7",
-        "name": "tapad6aebca-fe",
+        "mac": "aa:bb:cc:dd:ee:ff",
+        "name": "attic",
         "parameters": {}
     },
     "source": "openstack",
     "timestamp": "2014-10-03T00:25:07Z",
     "type": "cumulative",
     "unit": "B",
-    "user_id": "1f6f57489d404fe293c65d19e9b31df2",
+    "user_id": "magic",
     "volume": 58832
 }

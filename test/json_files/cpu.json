@@ -1,13 +1,12 @@
 {
-    "id": "dac5d476-4a93-11e4-b541-ecf4bbc1fce4",
+    "id": "garlic",
     "name": "cpu",
-    "project_id": "da1ea3cce8b545f382e0e1ca8f863c22",
-    "resource_id": "d9067afa-c79c-4a37-8181-84f612da2d48",
+    "project_id": "magic",
+    "resource_id": "magic",
     "resource_metadata": {
-        "OS-EXT-AZ:availability_zone": "syd1",
         "cpu_number": 1,
         "disk_gb": 20,
-        "display_name": "testcustomer-pe-d9067afa-c79c-4a37-8181-84f612da2d48",
+        "display_name": "cathartic",
         "ephemeral_gb": 0,
         "flavor": {
             "disk": 20,
@@ -15,7 +14,7 @@
             "id": "2",
             "links": [
                 {
-                    "href": "http://nova.int.syd1.prod.os.anchor.net.au:8774/bd3f518204b54407854a7dd8d1c49931/flavors/2",
+                    "href": "magic.com",
                     "rel": "bookmark"
                 }
             ],
@@ -23,14 +22,14 @@
             "ram": 2048,
             "vcpus": 1
         },
-        "host": "99b3b0658f1b29714aa27bc509e4ab82b19a524d1dc3f6b04ac53e42",
+        "host": "tragic",
         "image": null,
         "image_ref": null,
         "image_ref_url": null,
         "instance_type": "2",
         "kernel_id": null,
         "memory_mb": 2048,
-        "name": "instance-000009fd",
+        "name": "attic",
         "ramdisk_id": null,
         "root_gb": 20,
         "vcpus": 1
@@ -39,6 +38,6 @@
     "timestamp": "2014-10-03T00:26:01Z",
     "type": "cumulative",
     "unit": "ns",
-    "user_id": "1f6f57489d404fe293c65d19e9b31df2",
+    "user_id": "magic",
     "volume": 49320000000
 }

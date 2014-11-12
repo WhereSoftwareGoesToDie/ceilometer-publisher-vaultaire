@@ -41,12 +41,12 @@ expectedVolumeHashmap :: HashMap Text Text
 expectedVolumeHashmap = H.fromList
   [ ("_event", "1"),
     ("_compound", "1"),
-    ("project_id", "aaaf752c50804cf3aad71b92e6ced65e"),
-    ("resource_id", "6b116a55-2716-4406-9304-0080e3a5c608"),
+    ("project_id", "magic"),
+    ("resource_id", "magic"),
     ("metric_name", "volume.size"),
     ("metric_unit", "GB"),
     ("metric_type", "gauge"),
-    ("display_name", "Worpress0Snapshot3")
+    ("display_name", "cathartic")
   ]
 
 expectedVolumeSd :: SourceDict
@@ -64,8 +64,8 @@ expectedIPFloatingHashmap :: HashMap Text Text
 expectedIPFloatingHashmap = H.fromList
   [ ("_event", "1"),
     ("_compound", "1"),
-    ("project_id", "aaaf752c50804cf3aad71b92e6ced65e"),
-    ("resource_id", "d1d96a82-c1ce-4feb-acc1-227a50be9b9f"),
+    ("project_id", "magic"),
+    ("resource_id", "magic"),
     ("metric_name", "ip.floating"),
     ("metric_unit", "ip"),
     ("metric_type", "gauge")
@@ -85,9 +85,9 @@ expectedInstanceFlavorPayload = siphash "2"
 expectedInstanceFlavorHashmap :: HashMap Text Text
 expectedInstanceFlavorHashmap = H.fromList
   [ ("metric_name", "instance_flavor"),
-    ("project_id", "da1ea3cce8b545f382e0e1ca8f863c22"),
-    ("resource_id", "70979ae8-abc8-42dd-856e-19016911f615"),
-    ("display_name", "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615"),
+    ("project_id", "magic"),
+    ("resource_id", "magic"),
+    ("display_name", "cathartic"),
     ("metric_type", "gauge"),
     ("metric_unit", "instance"),
     ("_compound", "0"),
@@ -103,9 +103,9 @@ expectedInstanceRamPayload = 2048
 expectedInstanceRamHashmap :: HashMap Text Text
 expectedInstanceRamHashmap = H.fromList
   [ ("metric_name", "instance_ram"),
-    ("project_id", "da1ea3cce8b545f382e0e1ca8f863c22"),
-    ("resource_id", "70979ae8-abc8-42dd-856e-19016911f615"),
-    ("display_name", "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615"),
+    ("project_id", "magic"),
+    ("resource_id", "magic"),
+    ("display_name", "cathartic"),
     ("metric_type", "gauge"),
     ("metric_unit", "MB"),
     ("_compound", "0"),
@@ -121,9 +121,9 @@ expectedInstanceVCpuPayload = 1
 expectedInstanceVCpuHashmap :: HashMap Text Text
 expectedInstanceVCpuHashmap = H.fromList
   [ ("metric_name", "instance_vcpus"),
-    ("project_id", "da1ea3cce8b545f382e0e1ca8f863c22"),
-    ("resource_id", "70979ae8-abc8-42dd-856e-19016911f615"),
-    ("display_name", "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615"),
+    ("project_id", "magic"),
+    ("resource_id", "magic"),
+    ("display_name", "cathartic"),
     ("metric_type", "gauge"),
     ("metric_unit", "vcpu"),
     ("_compound", "0"),
@@ -139,9 +139,9 @@ expectedInstanceDiskPayload = 20
 expectedInstanceDiskHashmap :: HashMap Text Text
 expectedInstanceDiskHashmap = H.fromList
   [ ("metric_name", "instance_disk"),
-    ("project_id", "da1ea3cce8b545f382e0e1ca8f863c22"),
-    ("resource_id", "70979ae8-abc8-42dd-856e-19016911f615"),
-    ("display_name", "testcustomer-lamed-70979ae8-abc8-42dd-856e-19016911f615"),
+    ("project_id", "magic"),
+    ("resource_id", "magic"),
+    ("display_name", "cathartic"),
     ("metric_type", "gauge"),
     ("metric_unit", "GB"),
     ("_compound", "0"),
@@ -162,8 +162,8 @@ expectedNetworkRxTimestamp = TimeStamp 1412295907000000000
 expectedNetworkRxHashmap :: HashMap Text Text
 expectedNetworkRxHashmap = H.fromList
   [ ("metric_name", "network.incoming.bytes"),
-    ("project_id", "da1ea3cce8b545f382e0e1ca8f863c22"),
-    ("resource_id", "instance-000009fd-d9067afa-c79c-4a37-8181-84f612da2d48-tapad6aebca-fe"),
+    ("project_id", "magic"),
+    ("resource_id", "magic"),
     ("metric_type", "cumulative"),
     ("metric_unit", "B"),
     ("_compound", "0"),
@@ -183,8 +183,8 @@ expectedNetworkTxTimestamp = TimeStamp 1412295932000000000
 expectedNetworkTxHashmap :: HashMap Text Text
 expectedNetworkTxHashmap = H.fromList
   [ ("metric_name", "network.outgoing.bytes"),
-    ("project_id", "da1ea3cce8b545f382e0e1ca8f863c22"),
-    ("resource_id", "instance-000009fd-d9067afa-c79c-4a37-8181-84f612da2d48-tapad6aebca-fe"),
+    ("project_id", "magic"),
+    ("resource_id", "magic"),
     ("metric_type", "cumulative"),
     ("metric_unit", "B"),
     ("_compound", "0"),
@@ -206,9 +206,9 @@ expectedDiskReadTimestamp = TimeStamp 1412295960000000000
 expectedDiskReadHashmap :: HashMap Text Text
 expectedDiskReadHashmap = H.fromList
   [ ("metric_name", "disk.read.bytes"),
-    ("project_id", "da1ea3cce8b545f382e0e1ca8f863c22"),
-    ("resource_id", "d9067afa-c79c-4a37-8181-84f612da2d48"),
-    ("display_name", "testcustomer-pe-d9067afa-c79c-4a37-8181-84f612da2d48"),
+    ("project_id", "magic"),
+    ("resource_id", "magic"),
+    ("display_name", "cathartic"),
     ("metric_type", "cumulative"),
     ("metric_unit", "B"),
     ("_compound", "0"),
@@ -228,9 +228,9 @@ expectedDiskWriteTimestamp = TimeStamp 1412295959000000000
 expectedDiskWriteHashmap :: HashMap Text Text
 expectedDiskWriteHashmap = H.fromList
   [ ("metric_name", "disk.write.bytes"),
-    ("project_id", "da1ea3cce8b545f382e0e1ca8f863c22"),
-    ("resource_id", "d9067afa-c79c-4a37-8181-84f612da2d48"),
-    ("display_name", "testcustomer-pe-d9067afa-c79c-4a37-8181-84f612da2d48"),
+    ("project_id", "magic"),
+    ("resource_id", "magic"),
+    ("display_name", "cathartic"),
     ("metric_type", "cumulative"),
     ("metric_unit", "B"),
     ("_compound", "0"),
@@ -252,9 +252,9 @@ expectedCpuTimestamp = TimeStamp 1412295961000000000
 expectedCpuHashmap :: HashMap Text Text
 expectedCpuHashmap = H.fromList
   [ ("metric_name", "cpu"),
-    ("project_id", "da1ea3cce8b545f382e0e1ca8f863c22"),
-    ("resource_id", "d9067afa-c79c-4a37-8181-84f612da2d48"),
-    ("display_name", "testcustomer-pe-d9067afa-c79c-4a37-8181-84f612da2d48"),
+    ("project_id", "magic"),
+    ("resource_id", "magic"),
+    ("display_name", "cathartic"),
     ("metric_type", "cumulative"),
     ("metric_unit", "ns"),
     ("_compound", "0"),
