@@ -4,7 +4,7 @@ set -eux
 MAJOR=$1
 MINOR=$2
 PATCH=$3
-VERSION="${MAJOR}.${MINOR}"
+VERSION="${MAJOR}.${MINOR}.${PATCH}"
 ROOT=$(realpath $(pwd))
 
 echo
