@@ -14,7 +14,7 @@ echo
 # Install deps
 
 sudo yum update -y
-sudo yum install -y zeromq-devel
+sudo yum install -y zeromq3-devel
 
 # Force creation of $HOME/.cabal/config
 cabal list > /dev/null
