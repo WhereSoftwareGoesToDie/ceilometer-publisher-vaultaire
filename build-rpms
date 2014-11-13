@@ -14,12 +14,22 @@ echo
 # Force creation of $HOME/.cabal/config
 cabal list > /dev/null
 sed -r -i "s,^(remote-repo: hackage.haskell.org.*)$,\1\nremote-repo: hackage.syd1.anchor.net.au:http://hackage.syd1.anchor.net.au/packages/archive," /home/jenkins/.cabal/config
+cabal update
 
 mkdir artefacts
 
-cabal install
+for f in check-*; do
+    if [[ -d "$f" ]]; then
+        pushd "$f"
 
-cp .cabal-sandbox/bin/* ../artefacts/
+        cabal sandbox init
+
+        cabal install
+
+        cp .cabal-sandbox/bin/* ../artefacts/
+        popd
+    fi
+done
 
 rm -rf "ceilometer-publisher-vaultaire-${VERSION}"
 mv artefacts "ceilometer-publisher-vaultaire-${VERSION}"
@@ -39,3 +49,9 @@ tar czvf "$HOME/rpmbuild/SOURCES/ceilometer-publisher-vaultaire-${VERSION}.tar.g
 rpmbuild -bb --define "build_number $PATCH" --define "dist .el7" \
         $ROOT/pkg/centos/ceilometer-publisher-vaultaire.spec
 find $HOME/rpmbuild/RPMS/ -type f | xargs -n 1 -I % cp % packages/
+
+##
+## Build a DEB package.
+##
+
+echo TODO
