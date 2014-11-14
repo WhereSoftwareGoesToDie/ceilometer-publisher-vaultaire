@@ -13,6 +13,12 @@ echo
 
 # Install deps
 
+if [ ! -d /etc/yum.repos.d ]; then
+    mkdir /etc/yum.repos.d
+fi
+
+cp Vaultaire.repo /etc/yum.repos.d/
+
 sudo yum update -y
 sudo yum install -y zeromq3-devel
 

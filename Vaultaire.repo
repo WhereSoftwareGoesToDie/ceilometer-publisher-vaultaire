@@ -1,0 +1,5 @@
+[Vaultaire]
+name=Vaultaire's RHEL 7 repository
+baseurl=http://packages.anchor.net.au/feature/vaultaire/centos/7/x86_64/
+gpgkey=http://packages.engineroom.anchor.net.au/ANCHOR-2014-GPG-KEY
+enabled=1 
