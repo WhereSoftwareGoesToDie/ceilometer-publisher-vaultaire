@@ -13,7 +13,9 @@ BuildRequires:  ghc >= 7.8.3
 BuildRequires:  cabal-install
 BuildRequires:  zeromq-devel >= 4.0.3
 BuildRequires:  gmp-devel
+BuildRequires:  zlib-devel
 Requires:   gmp
+Requires:   zlib
 Requires:   zeromq >= 4.0.3
 
 %description
