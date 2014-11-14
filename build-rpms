@@ -20,7 +20,7 @@ fi
 sudo cp Vaultaire.repo /etc/yum.repos.d/
 
 sudo yum update -y
-sudo yum install -y zeromq4-devel
+sudo yum install -y zeromq-devel
 
 # Force creation of $HOME/.cabal/config
 cabal list > /dev/null
