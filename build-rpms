@@ -42,7 +42,7 @@ cabal sandbox add-source ../marquise/
 
 cabal install
 
-cp .cabal-sandbox/bin/* ../artefacts/
+cp .cabal-sandbox/bin/* artefacts/
 
 rm -rf "ceilometer-publisher-vaultaire-${VERSION}"
 mv artefacts "ceilometer-publisher-vaultaire-${VERSION}"
