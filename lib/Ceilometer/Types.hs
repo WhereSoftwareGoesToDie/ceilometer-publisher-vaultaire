@@ -70,6 +70,7 @@ data CeilometerOptions = CeilometerOptions
     , rabbitQueue   :: Text
     , rabbitPollPeriod :: Int
     , rabbitPasswordFile :: FilePath
+    , numThreads :: Int
     }
 
 data CeilometerState = CeilometerState
@@ -77,7 +78,7 @@ data CeilometerState = CeilometerState
     , ceilometerMessageChan  :: Channel
     }
 
-type Publisher = Collector CeilometerOptions CeilometerState IO
+type Publisher = Collector CeilometerOptions [CeilometerState] IO
 
 type PublicationData = Publisher [(Address, SourceDict, TimeStamp, Word64)]
 

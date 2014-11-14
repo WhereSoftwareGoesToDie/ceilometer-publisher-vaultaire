@@ -82,20 +82,27 @@ runPublisher = runCollector parseOptions initState cleanup publishSamples
              <> short 'f'
              <> metavar "PASSWORD-FILE"
              <> help "File containing the password to use for RabbitMQ")
+        <*> option auto
+            (long "num-threads"
+             <> short 'j'
+             <> value 1
+             <> metavar "NUM_THREADS"
+             <> help "Number of threads/connections to run concurrently")
     initState (_, CeilometerOptions{..}) = do
         password <- withFile rabbitPasswordFile ReadMode T.hGetLine
-        conn <- openConnection rabbitHost rabbitVHost rabbitLogin password
-        infoM "Ceilometer.Process.initState" "Connected to RabbitMQ server"
-        chan <- openChannel conn
-        infoM "Ceilometer.Process.initState" "Opened channel"
-        return $ CeilometerState conn chan
+        replicateM numThreads $ do
+            conn <- openConnection rabbitHost rabbitVHost rabbitLogin password
+            infoM "Ceilometer.Process.initState" "Connected to RabbitMQ server"
+            chan <- openChannel conn
+            infoM "Ceilometer.Process.initState" "Opened channel"
+            return $ CeilometerState conn chan
     cleanup = do
-        (_, CeilometerState conn _ ) <- get
-        liftIO $ closeConnection conn
+        (_, ss) <- get
+        liftIO $ forM_ ss $ closeConnection . ceilometerMessageConn
     publishSamples = do
         (_, CeilometerOptions{..}) <- ask
-        (_, CeilometerState{..}) <- get
-        forever $ do
+        (_, ss) <- get
+        forM_ ss $ \CeilometerState{..} -> forever $ do
             liftIO $ infoM "Ceilometer.Process.publishSamples" "Waiting for message"
             msg <- liftIO $ getMsg ceilometerMessageChan Ack rabbitQueue
             case msg of
