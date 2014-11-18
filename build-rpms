@@ -21,6 +21,9 @@ if [ ! -d /etc/yum.repos.d ]; then
 fi
 
 sudo cp Vaultaire.repo /etc/yum.repos.d/
+sudo yum update -y
+sudo yum install -y zeromq-devel
+sudo yum install -y zlib-devel
 
 cd ..
 
