@@ -27,23 +27,42 @@ sudo yum install -y zlib-devel
 
 cd ..
 
+ls
+
 git clone https://github.com/anchor/vaultaire-collector-common.git vaultaire-collector-common/
 git clone https://github.com/anchor/vaultaire-common.git vaultaire-common/
 git clone https://github.com/anchor/marquise.git marquise/
 
-cd ceilometer-publisher-vaultaire
+ls
 
-export LC_ALL=en_US.UTF-8
-cabal list > /dev/null
-sed -r -i "s,^(remote-repo: hackage.haskell.org.*)$,\1\nremote-repo: hackage.syd1.anchor.net.au:http://hackage.syd1.anchor.net.au/packages/archive," /home/jenkins/.cabal/config
-cabal update
-cabal sandbox init
-cabal sandbox add-source ../vaultaire-common
-cabal sandbox add-source ../marquise
-cabal sandbox add-source ../vaultaire-collector-common
-cabal install --only-dependencies
-cabal build
+cd ceilometer-publisher-vaultaire
+git status
+git branch -v
+
+git archive --prefix=ceilometer-publisher-vaultaire-${VERSION}/ -o ../ceilometer-publisher-vaultaire-${VERSION}.tar.gz HEAD
+
+cd ../vaultaire-collector-common
+git archive --prefix=vaultaire-collector-common/ -o ../vaultaire-collector-common.tar.gz master
+
+cd ../vaultaire-common
+git archive --prefix=vaultaire-common/ -o ../vaultaire-common.tar.gz master
+
+cd ../marquise
+git archive --prefix=marquise/ -o ../marquise.tar.gz master
+
+cd ..
+
+mkdir $HOME/rpmbuild/SOURCES/ -p
+mv *.tar.gz $HOME/rpmbuild/SOURCES/
+
+rpmdev-setuptree
+
+# Make rpmbuild stop with the debuginfo packages.
+
+echo '%debug_package %{nil}' > $HOME/.rpmmacros
+rpmbuild -bb --define "build_number $BUILDNO" --define "dist .el7" \
+        $ROOT/pkg/centos/ceilometer-publisher-vaultaire.spec
 
 mkdir packages
 
-cp dist/build/ceilometer-publisher-vaultaire/ceilometer-publisher-vaultaire packages/ceilometer-publisher-vaultaire-${VERSION}-$BUILDNO
+cp $HOME/results/*.rpm packages/
