@@ -10,6 +10,7 @@ Source0:    ceilometer-publisher-vaultaire-%{version}.tar.gz
 Source1:    vaultaire-common.tar.gz
 Source2:    marquise.tar.gz
 Source3:    vaultaire-collector-common.tar.gz
+BuildRoot:  %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 BuildRequires:  ghc >= 7.8.3
 BuildRequires:  cabal-install
@@ -33,6 +34,10 @@ ceilometer-publisher-vaultaire reads metrics from a RabbitMQ queue, consolidates
 
 %build
 
+echo %{buildroot}
+echo %{_builddir}
+echo %{_bindir}
+pwd
 export LC_ALL=en_US.UTF-8
 cabal list > /dev/null
 sed -r -i "s,^(remote-repo: hackage.haskell.org.*)$,\1\nremote-repo: hackage.syd1.anchor.net.au:http://hackage.syd1.anchor.net.au/packages/archive," /home/jenkins/.cabal/config
@@ -44,11 +49,14 @@ cabal sandbox add-source ../vaultaire-collector-common
 cabal install --only-dependencies
 cabal build
 
-cp dist/build/ceilometer-publisher-vaultaire/ceilometer-publisher-vaultaire %{_builddir}
+%install
+mkdir -p %{buildroot}/usr/bin
+cp -v dist/build/ceilometer-publisher-vaultaire/ceilometer-publisher-vaultaire %{buildroot}%{_bindir}
 
 %files
+%defattr(-,root,root,-)
 
-%{_builddir}/ceilometer-publisher-vaultaire
+%{_bindir}/ceilometer-publisher-vaultaire
 
 %changelog
 * Thu Nov 13 2014 Oswyn Brent <oswyn.brent@anchor.com.au> - 0.1.0-0.0anchor1
