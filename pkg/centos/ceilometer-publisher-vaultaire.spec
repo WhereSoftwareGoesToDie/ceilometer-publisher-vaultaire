@@ -48,8 +48,8 @@ cabal build
 
 %install
 
-mkdir -p %{buildroot}/usr/bin
-cp -v %{_builddir}/ceilometer-publisher-vaultaire/dist/build/ceilometer-publisher-vaultaire/ceilometer-publisher-vaultaire %{buildroot}%{_bindir}
+#mkdir -p %{buildroot}/usr/bin
+#cp -v %{_builddir}/ceilometer-publisher-vaultaire/dist/build/ceilometer-publisher-vaultaire/ceilometer-publisher-vaultaire %{buildroot}%{_bindir}
 
 %files
 
