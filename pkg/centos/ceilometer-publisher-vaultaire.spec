@@ -35,6 +35,8 @@ ceilometer-publisher-vaultaire reads metrics from a RabbitMQ queue, consolidates
 %build
 
 echo %{buildroot}
+echo %{_builddir}
+echo %{_bindir}
 pwd
 export LC_ALL=en_US.UTF-8
 cabal list > /dev/null
