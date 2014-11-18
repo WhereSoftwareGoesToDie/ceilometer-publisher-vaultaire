@@ -27,19 +27,17 @@ ceilometer-publisher-vaultaire reads metrics from a RabbitMQ queue, consolidates
 %global ghc_without_dynamic 1
 
 %prep
-%setup
-export LC_ALL=en_US.UTF-8
-cabal list > /dev/null
-sed -r -i "s,^(remote-repo: hackage.haskell.org.*)$,\1\nremote-repo: hackage.syd1.anchor.net.au:http://hackage.syd1.anchor.net.au/packages/archive," /home/jenkins/.cabal/config
-cabal update
 %setup -n vaultaire-common -T -D -b 1
 %setup -n marquise -T -D -b 2
 %setup -n vaultaire-collector-common -T -D -b 3
-
+%setup -T -D -b 0
 
 %build
 
 export LC_ALL=en_US.UTF-8
+cabal list > /dev/null
+sed -r -i "s,^(remote-repo: hackage.haskell.org.*)$,\1\nremote-repo: hackage.syd1.anchor.net.au:http://hackage.syd1.anchor.net.au/packages/archive," /home/jenkins/.cabal/config
+cabal update
 cabal sandbox init
 cabal sandbox add-source ../vaultaire-common
 cabal sandbox add-source ../marquise
