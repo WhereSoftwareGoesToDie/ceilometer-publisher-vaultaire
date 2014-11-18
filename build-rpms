@@ -6,14 +6,15 @@ export LANG=en_US.UTF-8
 MAJOR=$1
 MINOR=$2
 PATCH=$3
+BUILDNO=$4
 VERSION="${MAJOR}.${MINOR}.${PATCH}"
 ROOT=$(realpath $(pwd))
 
 echo
-echo "BUILDING VERSION ${VERSION} - ${PATCH}"
+echo "BUILDING VERSION ${VERSION} - ${BUILDNO}"
 echo
 
-# Install deps
+# Pre
 
 if [ ! -d /etc/yum.repos.d ]; then
     sudo mkdir /etc/yum.repos.d
@@ -21,50 +22,28 @@ fi
 
 sudo cp Vaultaire.repo /etc/yum.repos.d/
 
-sudo yum update -y
-sudo yum install -y zeromq-devel
-sudo yum install -y zlib-devel
-
-# Force creation of $HOME/.cabal/config
-cabal list > /dev/null
-sed -r -i "s,^(remote-repo: hackage.haskell.org.*)$,\1\nremote-repo: hackage.syd1.anchor.net.au:http://hackage.syd1.anchor.net.au/packages/archive," /home/jenkins/.cabal/config
-
-mkdir artefacts
-
-cabal update
-cabal sandbox init
 git clone https://github.com/anchor/vaultaire-collector-common.git ../vaultaire-collector-common/
 git clone https://github.com/anchor/vaultaire-common.git ../vaultaire-common/
 git clone https://github.com/anchor/marquise.git ../marquise/
-cabal sandbox add-source ../vaultaire-collector-common/
-cabal sandbox add-source ../vaultaire-common/
-cabal sandbox add-source ../marquise/
 
-cabal install
+git archive --prefix=ceilometer-publisher-vaultaire-${VERSION}/ -o ../ceilometer-publisher-${VERSION}.tar.gz haskell-impl
 
-cp .cabal-sandbox/bin/* artefacts/
+cd ../vaultaire-collector-common
+git archive --prefix=vaultaire-collector-common/ -o ../vaultaire-collector-common.tar.gz master
 
-rm -rf "ceilometer-publisher-vaultaire-${VERSION}"
-mv artefacts "ceilometer-publisher-vaultaire-${VERSION}"
-mkdir -p packages
+cd ../vaultaire-common
+git archive --prefix=vaultaire-common/ -o ../vaultaire-common.tar.gz master
 
-##
-## Build an RPM package.
-##
+cd ../marquise
+git archive --prefix=marquise/ -o ../marquise.tar.gz master
+
+cd ..
 
 rpmdev-setuptree
 
 # Make rpmbuild stop with the debuginfo packages.
+
 echo '%debug_package %{nil}' > $HOME/.rpmmacros
-
-tar czvf "$HOME/rpmbuild/SOURCES/ceilometer-publisher-vaultaire-${VERSION}.tar.gz" \
-        "ceilometer-publisher-vaultaire-${VERSION}"
-rpmbuild -bb --define "build_number $PATCH" --define "dist .el7" \
+rpmbuild -bb --define "build_number $BUILDNO" --define "dist .el7" \
         $ROOT/pkg/centos/ceilometer-publisher-vaultaire.spec
-find $HOME/rpmbuild/RPMS/ -type f | xargs -n 1 -I % cp % packages/
-
-##
-## Build a DEB package.
-##
-
-echo TODO
+mock -r centos-7-x86_64 --verbose --rebuild SPRMS/ceilometer-publisher-vaultaire-${VERSION}-$BUILDNO.0anchor1.el6.src.rpm
