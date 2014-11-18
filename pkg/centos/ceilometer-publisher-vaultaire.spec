@@ -34,9 +34,9 @@ sed -r -i "s,^(remote-repo: hackage.haskell.org.*)$,\1\nremote-repo: hackage.syd
 cabal update
 %setup -T -D -b 1
 cabal install
-%setup -n marquise -T -D -b 2
+%setup -T -D -b 2
 cabal install
-%setup -n vaultaire-collector-common -T -D -b 3
+%setup -T -D -b 3
 cabal install
 
 
