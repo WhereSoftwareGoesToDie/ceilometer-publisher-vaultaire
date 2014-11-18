@@ -65,5 +65,5 @@ rpmbuild -bb --define "build_number $BUILDNO" --define "dist .el7" \
 
 mkdir packages
 
-ls $HOME/rpmbuild/BUILDROOT/
-cp $HOME/rpmbuild/BUILDROOT/*.rpm packages/
+ls $HOME/rpmbuild/SRPMS/
+cp $HOME/rpmbuild/SRPMS/*.rpm packages/
