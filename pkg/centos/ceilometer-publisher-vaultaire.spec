@@ -31,7 +31,7 @@ ceilometer-publisher-vaultaire reads metrics from a RabbitMQ queue, consolidates
 cabal list > /dev/null
 sed -r -i "s,^(remote-repo: hackage.haskell.org.*)$,\1\nremote-repo: hackage.syd1.anchor.net.au:http://hackage.syd1.anchor.net.au/packages/archive," /home/jenkins/.cabal/config
 cabal update
-%setup -n ceilometer-publisher-vaultaire
+%setup
 
 %build
 
