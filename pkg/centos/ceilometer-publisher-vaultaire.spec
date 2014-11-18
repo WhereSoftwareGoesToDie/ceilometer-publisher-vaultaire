@@ -32,11 +32,11 @@ export LC_ALL=en_US.UTF-8
 cabal list > /dev/null
 sed -r -i "s,^(remote-repo: hackage.haskell.org.*)$,\1\nremote-repo: hackage.syd1.anchor.net.au:http://hackage.syd1.anchor.net.au/packages/archive," /home/jenkins/.cabal/config
 cabal update
-%setup -n vaultaire-common -T -D -a 1
+%setup -T -D -b 1
 cabal install
-%setup -n marquise -T -D -a 2
+%setup -n marquise -T -D -b 2
 cabal install
-%setup -n vaultaire-collector-common -T -D -a 3
+%setup -n vaultaire-collector-common -T -D -b 3
 cabal install
 
 
