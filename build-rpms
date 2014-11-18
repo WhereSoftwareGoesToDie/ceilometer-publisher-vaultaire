@@ -33,6 +33,9 @@ git clone https://github.com/anchor/marquise.git marquise/
 ls
 
 cd ceilometer-publisher-vaultaire
+git status
+git branch -v
+
 git archive --prefix=ceilometer-publisher-vaultaire-${VERSION}/ -o ../ceilometer-publisher-${VERSION}.tar.gz haskell-impl
 
 cd ../vaultaire-collector-common
