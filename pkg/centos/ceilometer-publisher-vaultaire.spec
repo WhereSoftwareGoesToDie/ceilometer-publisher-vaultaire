@@ -38,13 +38,15 @@ export LC_ALL=en_US.UTF-8
 cabal list > /dev/null
 sed -r -i "s,^(remote-repo: hackage.haskell.org.*)$,\1\nremote-repo: hackage.syd1.anchor.net.au:http://hackage.syd1.anchor.net.au/packages/archive," /home/jenkins/.cabal/config
 cabal update
-ls
 cabal sandbox init
 cabal sandbox add-source ../vaultaire-common
 cabal sandbox add-source ../marquise
 cabal sandbox add-source ../vaultaire-collector-common
 cabal install --only-dependencies
 cabal build
+
+%files
+dist/lib/ceilometer-publisher-vaultaire/ceilometer-publisher-vaultaire
 
 %changelog
 * Thu Nov 13 2014 Oswyn Brent <oswyn.brent@anchor.com.au> - 0.1.0-0.0anchor1
