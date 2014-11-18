@@ -8,8 +8,8 @@ License:    BSD
 URL:        https://github.com/anchor/ceilometer-publisher-vaultaire
 Source0:    ceilometer-publisher-vaultaire-%{version}.tar.gz
 Source1:    vaultaire-common.tar.gz
-Source2:    vaultaire-collector-common.tar.gz
-Source3:    marquise.tar.gz
+Source2:    marquise.tar.gz
+Source3:    vaultaire-collector-common.tar.gz
 BuildRoot:  %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 BuildRequires:  ghc >= 7.8.3
@@ -34,10 +34,11 @@ sed -r -i "s,^(remote-repo: hackage.haskell.org.*)$,\1\nremote-repo: hackage.syd
 cabal update
 %setup -n vaultaire-common -T -b 1
 cabal install
-%setup -n vaultaire-collector-common -T -b 2
+%setup -n marquise -T -b 2
 cabal install
-%setup -n marquise -T -b 3
+%setup -n vaultaire-collector-common -T -b 3
 cabal install
+
 %setup
 
 %build
