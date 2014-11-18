@@ -44,11 +44,11 @@ cabal sandbox add-source ../vaultaire-collector-common
 cabal install --only-dependencies
 cabal build
 
-cp dist/build/ceilometer-publisher-vaultaire/ceilometer-publisher-vaultaire ../
+cp dist/build/ceilometer-publisher-vaultaire/ceilometer-publisher-vaultaire %{_bindir}
 
 %files
 
-%{_builddir}/ceilometer-publisher-vaultaire
+%{_bindir}/ceilometer-publisher-vaultaire
 
 %changelog
 * Thu Nov 13 2014 Oswyn Brent <oswyn.brent@anchor.com.au> - 0.1.0-0.0anchor1
