@@ -38,6 +38,7 @@ export LC_ALL=en_US.UTF-8
 cabal list > /dev/null
 sed -r -i "s,^(remote-repo: hackage.haskell.org.*)$,\1\nremote-repo: hackage.syd1.anchor.net.au:http://hackage.syd1.anchor.net.au/packages/archive," /home/jenkins/.cabal/config
 cabal update
+ls
 cabal sandbox init
 cabal sandbox add-source ../vaultaire-common
 cabal sandbox add-source ../marquise
