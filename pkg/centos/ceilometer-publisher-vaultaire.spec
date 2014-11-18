@@ -46,7 +46,7 @@ cabal install --only-dependencies
 cabal build
 
 %files
-dist/lib/ceilometer-publisher-vaultaire/ceilometer-publisher-vaultaire
+/dist/lib/ceilometer-publisher-vaultaire/ceilometer-publisher-vaultaire
 
 %changelog
 * Thu Nov 13 2014 Oswyn Brent <oswyn.brent@anchor.com.au> - 0.1.0-0.0anchor1
