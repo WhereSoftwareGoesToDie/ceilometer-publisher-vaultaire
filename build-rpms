@@ -22,10 +22,11 @@ fi
 
 sudo cp Vaultaire.repo /etc/yum.repos.d/
 
-git clone https://github.com/anchor/vaultaire-collector-common.git ../vaultaire-collector-common/
-git clone https://github.com/anchor/vaultaire-common.git ../vaultaire-common/
-git clone https://github.com/anchor/marquise.git ../marquise/
+git clone https://github.com/anchor/vaultaire-collector-common.git vaultaire-collector-common/
+git clone https://github.com/anchor/vaultaire-common.git vaultaire-common/
+git clone https://github.com/anchor/marquise.git marquise/
 
+cd ceilometer-publisher-vaultaire
 git archive --prefix=ceilometer-publisher-vaultaire-${VERSION}/ -o ../ceilometer-publisher-${VERSION}.tar.gz haskell-impl
 
 cd ../vaultaire-collector-common
