@@ -10,7 +10,7 @@ Source0:    ceilometer-publisher-vaultaire-%{version}.tar.gz
 Source1:    vaultaire-common.tar.gz
 Source2:    marquise.tar.gz
 Source3:    vaultaire-collector-common.tar.gz
-BuildRoot:  %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+BuildRoot:  %(mktemp -ud %{_tmppath}/%{name}-%{version}-XXXXXX)
 
 BuildRequires:  ghc >= 7.8.3
 BuildRequires:  cabal-install
@@ -56,7 +56,7 @@ cp -v %{_builddir}/ceilometer-publisher-vaultaire/dist/build/ceilometer-publishe
 %files
 %defattr(-,root,root,-)
 
-%{_bindir}/ceilometer-publisher-vaultaire
+%{_builddir}/ceilceilometer-publisher-vaultaire
 
 %changelog
 * Thu Nov 13 2014 Oswyn Brent <oswyn.brent@anchor.com.au> - 0.1.0-0.0anchor1
