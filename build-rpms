@@ -38,7 +38,7 @@ git archive --prefix=marquise/ -o ../marquise.tar.gz master
 cd ../ceilometer-publisher-vaultaire
 
 mkdir $HOME/rpmbuild/SOURCES/ -p
-mv *.tar.gz $HOME/rpmbuild/SOURCES/
+mv ../*.tar.gz $HOME/rpmbuild/SOURCES/
 
 rpmdev-setuptree
 
