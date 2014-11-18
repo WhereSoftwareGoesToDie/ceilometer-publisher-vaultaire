@@ -65,4 +65,4 @@ rpmbuild -bb --define "build_number $BUILDNO" --define "dist .el7" \
 
 mkdir packages
 
-cp $HOME/rpmbuild/SRPMS/*.rpm packages/
+cp $HOME/rpmbuild/RPMS/x86_64/*.rpm packages/
