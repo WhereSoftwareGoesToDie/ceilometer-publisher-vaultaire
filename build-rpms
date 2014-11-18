@@ -16,28 +16,13 @@ echo
 
 # Pre
 
-if [ ! -d /etc/yum.repos.d ]; then
-    sudo mkdir /etc/yum.repos.d
-fi
-
-sudo cp Vaultaire.repo /etc/yum.repos.d/
 sudo yum update -y
 sudo yum install -y zeromq-devel
 sudo yum install -y zlib-devel
 
-cd ..
-
-ls
-
-git clone https://github.com/anchor/vaultaire-collector-common.git vaultaire-collector-common/
-git clone https://github.com/anchor/vaultaire-common.git vaultaire-common/
-git clone https://github.com/anchor/marquise.git marquise/
-
-ls
-
-cd ceilometer-publisher-vaultaire
-git status
-git branch -v
+git clone https://github.com/anchor/vaultaire-collector-common.git ../vaultaire-collector-common/
+git clone https://github.com/anchor/vaultaire-common.git ../vaultaire-common/
+git clone https://github.com/anchor/marquise.git ../marquise/
 
 git archive --prefix=ceilometer-publisher-vaultaire-${VERSION}/ -o ../ceilometer-publisher-vaultaire-${VERSION}.tar.gz HEAD
 
@@ -50,7 +35,7 @@ git archive --prefix=vaultaire-common/ -o ../vaultaire-common.tar.gz master
 cd ../marquise
 git archive --prefix=marquise/ -o ../marquise.tar.gz master
 
-cd ..
+cd ../ceilometer-publisher-vaultaire
 
 mkdir $HOME/rpmbuild/SOURCES/ -p
 mv *.tar.gz $HOME/rpmbuild/SOURCES/
