@@ -34,6 +34,8 @@ ceilometer-publisher-vaultaire reads metrics from a RabbitMQ queue, consolidates
 
 %build
 
+echo %{buildroot}
+pwd
 export LC_ALL=en_US.UTF-8
 cabal list > /dev/null
 sed -r -i "s,^(remote-repo: hackage.haskell.org.*)$,\1\nremote-repo: hackage.syd1.anchor.net.au:http://hackage.syd1.anchor.net.au/packages/archive," /home/jenkins/.cabal/config
