@@ -49,6 +49,8 @@ git archive --prefix=marquise/ -o ../marquise.tar.gz master
 
 cd ..
 
+mv *.tar.gz $HOME/rpmbuild/SOURCES/
+
 rpmdev-setuptree
 
 # Make rpmbuild stop with the debuginfo packages.
@@ -56,9 +58,8 @@ rpmdev-setuptree
 echo '%debug_package %{nil}' > $HOME/.rpmmacros
 rpmbuild -bb --define "build_number $BUILDNO" --define "dist .el7" \
         $ROOT/pkg/centos/ceilometer-publisher-vaultaire.spec
-mock -r centos-7-x86_64 --verbose --rebuild $ROOT/../SPRMS/ceilometer-publisher-vaultaire-${VERSION}-$BUILDNO.0anchor1.el6.src.rpm
+mock -r centos-7-x86_64 --verbose --rebuild $HOME/rpmbuild/SPRMS/ceilometer-publisher-vaultaire-${VERSION}-$BUILDNO.0anchor1.el6.src.rpm
 
 mkdir packages
 
-
-cp $ROOT/../../results/*.rpm packages/
+cp $HOME/results/*.rpm packages/
